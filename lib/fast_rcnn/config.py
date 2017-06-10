@@ -28,6 +28,8 @@ __C = edict()
 #   from fast_rcnn_config import cfg
 cfg = __C
 
+__C.DEBUG = False
+
 #
 # Training options
 #
@@ -80,7 +82,7 @@ __C.TRAIN.BG_THRESH_HI = 0.5
 __C.TRAIN.BG_THRESH_LO = 0.1
 
 # Use horizontally-flipped images during training?
-__C.TRAIN.USE_FLIPPED = True
+__C.TRAIN.USE_FLIPPED = False
 
 # Train bounding-box regressors
 __C.TRAIN.BBOX_REG = True

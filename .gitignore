@@ -1,0 +1,12 @@
+*.jpg
+*.png
+*.pyc
+*.pkl
+*.so
+*.o
+*.npy
+*.mat
+*.zip
+*.json
+*.txt
+make.sh

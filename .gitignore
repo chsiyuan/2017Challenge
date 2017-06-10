@@ -9,4 +9,5 @@
 *.zip
 *.json
 *.txt
+*.txt.*
 make.sh

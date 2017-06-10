@@ -6,6 +6,7 @@
 # --------------------------------------------------------
 
 from .imdb import imdb
+from .coco import coco
 from .pascal_voc import pascal_voc
 from .pascal3d import pascal3d
 from .imagenet3d import imagenet3d

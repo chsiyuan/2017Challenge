@@ -1,0 +1,49 @@
+2~5 data are what we need to train the neural net. In total they are about only 850MB.
+
+
+1.matrix_select.mat
+
+matrix M 
+
+column 1: image id number
+column 2: largest segmention area index number
+column 3: 2nd largest segmention area index number
+column 4: area 1 
+column 5: area 2
+column 6: category 1
+column 7: category 2
+
+Notation:
+the image id number is the same as image name(jpg)/mask name(png)/ground truth name(png)
+column 2 4 6 corresponds to the largest sengmentation.
+column 3 5 7 corresponds to the 2nd largest one.
+
+
+2.boundingbox_matrix.mat
+
+column 1: image id number
+column 2: x
+column 3: y
+column 4: w 
+column 5: h
+
+3.deformed masks are stored in maask_def folder.
+The filenames are named: deformation_'imageid'.png
+
+Note:the png are 0/255 uint8 binary value, if you want double you can divide it by 255
+
+imageid range from 42 to 398339. the imageid should be retrives from the first column of matrix_select.mat or boundingbox_matrix.mat
+
+4. ground truth segmentations are stored in groundtruth folder.
+The filenames are named: groundt_'imageid'.png
+
+Note:the png are uint8 type. The value of a pixel is 0 if it is backgroud and is category_id if it is foreground.
+
+category_id range from 1 to 90. There are 80 categories in total.
+
+5. training images are stored in images folder.
+There are 13876 images in total. 
+They are named from COCO_val2014_000000000042.jpg to COCO_val2014_000000398339.jpg
+So, there are a lot of 0 in the image file name but there is no extra 0 in mask or ground truth file names.
+
+6. maskgenerate.m readimage.m select.m select2.m and rbfwarp2d.m are created by ourselves. other files are provided by coco dataset.

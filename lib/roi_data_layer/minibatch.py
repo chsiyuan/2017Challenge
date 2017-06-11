@@ -134,7 +134,11 @@ def _get_image_blob(roidb, scale_inds):
     processed_ims = []
     im_scales = []
     for i in xrange(num_images):
-        im = cv2.imread(roidb[i]['image'])
+        im_bgr = cv2.imread(roidb[i]['image'])
+        mask = cv2.imread(roidb[i]['deformed_mask'],0)
+        im = np.zeros((im_bgr.shape[0], im_bgr.shape[1], 4))
+        im[:,:,0:3] = im_bgr
+        im[:,:,3] = mask
         if roidb[i]['flipped']:
             im = im[:, ::-1, :]
         target_size = cfg.TRAIN.SCALES[scale_inds[i]]

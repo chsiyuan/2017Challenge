@@ -270,3 +270,28 @@ class Network(object):
     @layer
     def dropout(self, input, keep_prob, name):
         return tf.nn.dropout(input, keep_prob, name=name)
+
+    # change in mask rcnn
+    @layer
+    def upscore(self, input, ksize, stride, c_out, name, trainable=True):
+        print name
+        strides = [1, stride, stride, 1]
+        print input
+        with tf.variable_scope(name) as scope:
+            in_shape = input.get_shape().as_list()
+            #(batches, h_in , w_in, channels)
+            c_in = in_shape[-1]
+            h_out = in_shape[1] * 2
+            w_out = in_shape[2] * 2
+            batch_size = tf.shape(input)[0]
+            out_shape = tf.stack([batch_size, h_out, w_out, c_out])
+
+            kernel_size = [ksize, ksize, c_out, c_in]
+
+            # initialize and get variable
+            init_weights = tf.truncated_normal_initializer(0.0, stddev=0.01)
+            kernel = self.make_var('up_kernel', kernel_size, init_weights, trainable)
+
+            output = tf.nn.conv2d_transpose(input, kernel, out_shape, strides=strides, padding='SAME', data_format='NHWC')
+
+            return tf.reshape(output,[-1, h_out, w_out, c_out])

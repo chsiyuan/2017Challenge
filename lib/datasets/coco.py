@@ -107,6 +107,13 @@ class coco(imdb):
         """
         return self.image_path_from_index(self._image_index[i])
 
+    #change in mask rcnn
+    def gtmask_path_at(self, i):
+        """
+        Return the absolute path to image i in the image sequence.
+        """
+        return self.gtmask_path_from_index(self._image_index[i])
+
     def image_path_from_index(self, index):
         """
         Construct an image path from the image's "index" identifier.
@@ -120,6 +127,21 @@ class coco(imdb):
         assert osp.exists(image_path), \
                 'Path does not exist: {}'.format(image_path)
         return image_path
+
+    #change in mask rcnn
+    def gtmask_path_from_index(self, index):
+        """
+        Construct an image path from the image's "index" identifier.
+        """
+        # path e.g., /data/coco/gt_mask/train2014/groundt_train_000000000009.png
+        file_name = ('groundt_' + self._data_name + '_' +
+                     str(index).zfill(12) + '.mat')
+        gtmask_path = osp.join(self._data_path, 'gt_mask',
+                              self._data_name, file_name)
+        assert osp.exists(gtmask_path), \
+                'Path does not exist: {}'.format(gtmask_path)
+        return gtmask_path
+
 
     def selective_search_roidb(self):
         return self._roidb_from_proposals('selective_search')
@@ -276,6 +298,8 @@ class coco(imdb):
 
         ds_utils.validate_boxes(boxes, width=width, height=height)
         overlaps = scipy.sparse.csr_matrix(overlaps)
+        # change in mask rcnn
+        gtmask_path = osp.join(self._data_path, 'gt_mask', self._data_name, obj['mask_name'])
         return {'boxes' : boxes,
                 'gt_classes': gt_classes,
                 'gt_overlaps' : overlaps,

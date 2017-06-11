@@ -209,6 +209,7 @@ def get_training_roidb(imdb):
         if cfg.IS_MULTISCALE:
             gdl_roidb.prepare_roidb(imdb)
         else:
+            # run this command
             rdl_roidb.prepare_roidb(imdb)
     else:
         rdl_roidb.prepare_roidb(imdb)

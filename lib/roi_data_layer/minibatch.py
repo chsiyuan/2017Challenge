@@ -12,6 +12,7 @@ import numpy.random as npr
 import cv2
 from fast_rcnn.config import cfg
 from utils.blob import prep_im_for_blob, im_list_to_blob
+import mat4py.mat4py
 
 def get_minibatch(roidb, num_classes):
     """Given a roidb, construct a minibatch sampled from it."""
@@ -26,7 +27,9 @@ def get_minibatch(roidb, num_classes):
     fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
     # Get the input image blob, formatted for caffe
-    im_blob, im_scales = _get_image_blob(roidb, random_scale_inds)
+    # change in mask rcnn
+    # return gt_mask without resizing
+    im_blob, gtmask_blob, im_scales = _get_image_blob(roidb, random_scale_inds)
 
     blobs = {'data': im_blob}
 
@@ -38,6 +41,19 @@ def get_minibatch(roidb, num_classes):
         gt_boxes = np.empty((len(gt_inds), 5), dtype=np.float32)
         gt_boxes[:, 0:4] = roidb[0]['boxes'][gt_inds, :] * im_scales[0]
         gt_boxes[:, 4] = roidb[0]['gt_classes'][gt_inds]
+
+        # change in mask rcnn
+        ann_ids = roidb[0]['ann_id'][gt_inds]
+        gt_masks = np.empty((len(gt_inds), im_blob.shape[1], im_blob.shape[2]), dtype=np.uint16)
+        for i in range(ann_ids.shape[0]):
+            mask = gtmask_blob[0,:,:].reshape((gtmask.shape[1],gtmask.shape[2]))
+            mask[np.where(mask != ann_ids[i])] = 0
+            mask[np.where(mask == ann_ids[i])] = 1
+            mask = cv2.resize(mask, None, None, fx=im_scales[0], fy=im_scales[0],
+                              interpolation=cv2.INTER_LINEAR)
+            gt_masks[i,:,:] = mask.rint().astype(int)
+        blobs['gt_masks'] = gt_masks
+
         blobs['gt_boxes'] = gt_boxes
         blobs['im_info'] = np.array(
             [[im_blob.shape[1], im_blob.shape[2], im_scales[0]]],
@@ -133,6 +149,7 @@ def _get_image_blob(roidb, scale_inds):
     num_images = len(roidb)
     processed_ims = []
     im_scales = []
+    unprocessed_gtmasks = []
     for i in xrange(num_images):
         im = cv2.imread(roidb[i]['image'])
         if roidb[i]['flipped']:
@@ -142,11 +159,17 @@ def _get_image_blob(roidb, scale_inds):
                                         cfg.TRAIN.MAX_SIZE)
         im_scales.append(im_scale)
         processed_ims.append(im)
+        # change in mask rcnn, read in gt mask
+        gtmask = np.asarray(mat4py.loadmat(roidb[i]['gt_mask'])['mask_gt'])
+        unprocessed_gtmasks.append(gtmask)
 
     # Create a blob to hold the input images
     blob = im_list_to_blob(processed_ims)
+    #change in mask rcnn
+    gtmask_blob = gtmask_list_to_blob(unprocessed_gtmasks)
 
-    return blob, im_scales
+    return blob, gtmas
+    k_blob, im_scales
 
 def _project_im_rois(im_rois, im_scale_factor):
     """Project image RoIs into the rescaled training image."""

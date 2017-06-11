@@ -77,16 +77,38 @@ class VGGnet_train(Network):
              .proposal_target_layer(n_classes,name = 'roi-data'))
 
 
+        # #========= RCNN ============
+        # (self.feed('conv5_3', 'roi-data')
+        #      .roi_pool(7, 7, 1.0/16, name='pool_5')
+        #      .fc(4096, name='fc6')
+        #      .dropout(0.5, name='drop6')
+        #      .fc(4096, name='fc7')
+        #      .dropout(0.5, name='drop7')
+        #      .fc(n_classes, relu=False, name='cls_score')
+        #      .softmax(name='cls_prob'))
+
+        # (self.feed('drop7')
+        #      .fc(n_classes*4, relu=False, name='bbox_pred'))
+
+        # change in mask rcnn
         #========= RCNN ============
         (self.feed('conv5_3', 'roi-data')
              .roi_pool(7, 7, 1.0/16, name='pool_5')
-             .fc(4096, name='fc6')
+             .conv(3, 3, 1024, 1, 1, name='conv6_1')
+             .conv(3, 3, 1024, 1, 1, name='conv6_2')
+             .conv(3, 3, 1024, 1, 1, name='conv6_3')
+             .fc(1024, name='fc6')
              .dropout(0.5, name='drop6')
-             .fc(4096, name='fc7')
+             .fc(1024, name='fc7')
              .dropout(0.5, name='drop7')
              .fc(n_classes, relu=False, name='cls_score')
              .softmax(name='cls_prob'))
 
         (self.feed('drop7')
-             .fc(n_classes*4, relu=False, name='bbox_pred'))
+            .fc(n_classes*4, relu=False, name = 'bbox_pred'))
+
+        (self.feed('conv6_3')
+            .upscore(2, 2, 256, name='up_1')
+            .conv(1, 1, n_classes, 1, 1, name='mask_out')
+            .sigmoid(name='mask_prob'))
 

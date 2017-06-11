@@ -25,6 +25,22 @@ def im_list_to_blob(ims):
 
     return blob
 
+# change in mask rcnn
+def gtmask_list_to_blob(gtmasks):
+    """Convert a list of images into a network input.
+
+    Assumes images are already prepared (means subtracted, BGR order, ...).
+    """
+    max_shape = np.array([gtmask.shape for gtmask in gtmasks]).max(axis=0)
+    num_images = len(gtmasks)
+    blob = np.zeros((num_images, max_shape[0], max_shape[1]),
+                    dtype=np.uint32)
+    for i in xrange(num_images):
+        gtmask = gtmasks[i]
+        blob[i, 0:gtmask.shape[0], 0:gtmask.shape[1]] = gtmask
+
+    return blob
+
 def prep_im_for_blob(im, pixel_means, target_size, max_size):
     """Mean subtract and scale an image for use in a blob."""
     im = im.astype(np.float32, copy=False)

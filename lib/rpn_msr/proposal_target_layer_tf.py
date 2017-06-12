@@ -15,7 +15,7 @@ import pdb
 
 DEBUG = False
 
-def proposal_target_layer(rpn_rois, gt_boxes,_num_classes):
+def proposal_target_layer(rpn_rois, gt_boxes, gt_masks, _num_classes):
     """
     Assign object detection proposals to ground-truth targets. Produces proposal
     classification labels and bounding-box regression targets.
@@ -42,10 +42,9 @@ def proposal_target_layer(rpn_rois, gt_boxes,_num_classes):
     fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
     # Sample rois with classification labels and bounding box regression
-    # targets
-    labels, rois, bbox_targets, bbox_inside_weights = _sample_rois(
-        all_rois, gt_boxes, fg_rois_per_image,
-        rois_per_image, _num_classes)
+    # targets 
+    labels, rois, bbox_targets, bbox_inside_weights, mask_gt, mask_weights = _sample_rois( \
+        all_rois, gt_boxes, gt_masks, fg_rois_per_image,rois_per_image, _num_classes)
 
     if DEBUG:
         print 'num fg: {}'.format((labels > 0).sum())
@@ -66,7 +65,7 @@ def proposal_target_layer(rpn_rois, gt_boxes,_num_classes):
 
     return rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights
 
-def _get_bbox_regression_labels(bbox_target_data, num_classes):
+def _get_bbox_regression_labels(bbox_target_data, mask_gt_data, num_classes):
     """Bounding-box regression targets (bbox_target_data) are stored in a
     compact form N x (class, tx, ty, tw, th)
 
@@ -77,28 +76,34 @@ def _get_bbox_regression_labels(bbox_target_data, num_classes):
         bbox_target (ndarray): N x 4K blob of regression targets
         bbox_inside_weights (ndarray): N x 4K blob of loss weights
     """
-
+    #change in mask rcnn
+    scale = cfg.TRAIN.ROI_OUTPUT_SIZE*2
     clss = np.array(bbox_target_data[:, 0], dtype=np.uint16, copy=True)
     bbox_targets = np.zeros((clss.size, 4 * num_classes), dtype=np.float32)
     bbox_inside_weights = np.zeros(bbox_targets.shape, dtype=np.float32)
+    mask_gt = np.zeros((clss.size, scale, scale, num_classes))
+    mask_weights = np.zeros((clss.size, scale, scale, num_classes))
     inds = np.where(clss > 0)[0]
     if cfg.DEBUG:
-	print "==========proposal_target_layer_tf.py==========="
-	print "----_get_bbox_regression_labels----"
-	print bbox_target_data.shape
-	print bbox_targets.shape
-	print inds.shape
+    	print "==========proposal_target_layer_tf.py==========="
+    	print "----_get_bbox_regression_labels----"
+    	print bbox_target_data.shape
+    	print bbox_targets.shape
+    	print inds.shape
     for ind in inds:
         cls = clss[ind]
         start = 4 * cls
         end = start + 4
-	if cfg.DEBUG:
-	    print "ind: " + str(ind)
-	    print "cls: " + str(cls)
-	    print "bbox_target_data: " + str(bbox_target_data[ind, 1:])
+
+    	if cfg.DEBUG:
+    	    print "ind: " + str(ind)
+    	    print "cls: " + str(cls)
+    	    print "bbox_target_data: " + str(bbox_target_data[ind, 1:])
         bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
         bbox_inside_weights[ind, start:end] = cfg.TRAIN.BBOX_INSIDE_WEIGHTS
-    return bbox_targets, bbox_inside_weights
+        mask_gt[ind, :, :, cls] = mask_gt_data[ind, :, :]
+        mask_weights[ind, :, :, cls] = np.ones((scale,scale))
+    return bbox_targets, bbox_inside_weights, mask_gt, mask_weights
 
 
 def _compute_targets(ex_rois, gt_rois, labels):
@@ -116,7 +121,7 @@ def _compute_targets(ex_rois, gt_rois, labels):
     return np.hstack(
             (labels[:, np.newaxis], targets)).astype(np.float32, copy=False)
 
-def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_classes):
+def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image, num_classes):
     """Generate a random sample of RoIs comprising foreground and background
     examples.
     """
@@ -159,7 +164,24 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     bbox_target_data = _compute_targets(
         rois[:, 1:5], gt_boxes[gt_assignment[keep_inds], :4], labels)
 
-    bbox_targets, bbox_inside_weights = \
-        _get_bbox_regression_labels(bbox_target_data, num_classes)
+    # change in mask rcnn
+
+    mask_gt_keep = gt_masks[gt_assignment[keep_inds], :, :]
+    # resize to 14 *14
+    scale = cfg.TRAIN.ROI_OUTPUT_SIZE*2
+    # mask_gt_data = 128 *14 *14
+    mask_gt_data = np.zeros((len(keep_inds),scale,scale))
+    for i in range(len(keep_inds)):
+        if labels[i] > 0:
+            roi = roi[i,1:5]
+            # roi: xmin ymin xmax ymax
+            mask_gt_clip = mask_gt_keep[i, int(round(roi[1])) : int(round(roi[3]))+1, int(round(roi[0])) : int(round(roi[2]))+1]
+            fx = float(scale)/mask_gt_clip.shape[1]
+            fy = float(scale)/mask_gt_clip.shape[0]
+            mask_gt_data[i,:,:] = np.round(cv2.resize(mask_gt_clip, None, fx=fx, fy=fy))
+    # turn 128 * 14 * 14 -> 128 * 14 * 14 and calculate mask_weights 128 * 14 * 14 * 81
+
+    bbox_targets, bbox_inside_weights, mask_gt, mask_weights = \
+        _get_bbox_regression_labels(bbox_target_data, mask_gt_data, num_classes)
 
     return labels, rois, bbox_targets, bbox_inside_weights

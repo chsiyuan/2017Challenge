@@ -182,20 +182,25 @@ class Network(object):
 
     @layer
     def proposal_target_layer(self, input, classes, name):
+        #classes = 81
+        # input 0 rpn_rois, 1 gt_boxes, 2 gt_masks
         if isinstance(input[0], tuple):
             input[0] = input[0][0]
         with tf.variable_scope(name) as scope:
 
-            rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights = tf.py_func(proposal_target_layer_py,[input[0],input[1],classes],[tf.float32,tf.float32,tf.float32,tf.float32,tf.float32])
+            # change in mask rcnn
+            rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights, mask_gt, mask_weights = \
+            tf.py_func(proposal_target_layer_py,[input[0],input[1],input[2],classes],\
+                [tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float])
 
             rois = tf.reshape(rois,[-1,5] , name = 'rois') 
             labels = tf.convert_to_tensor(tf.cast(labels,tf.int32), name = 'labels')
             bbox_targets = tf.convert_to_tensor(bbox_targets, name = 'bbox_targets')
             bbox_inside_weights = tf.convert_to_tensor(bbox_inside_weights, name = 'bbox_inside_weights')
             bbox_outside_weights = tf.convert_to_tensor(bbox_outside_weights, name = 'bbox_outside_weights')
-
-           
-            return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights
+            mask_gt = tf.convert_to_tensor(mask_gt, name = 'mask_gt')
+            mask_weights = tf.convert_to_tensor(mask_weights, name = 'mask_weights')
+            return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, mask_gt, mask_weights
 
 
     @layer

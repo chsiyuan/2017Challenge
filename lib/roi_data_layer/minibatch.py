@@ -46,12 +46,12 @@ def get_minibatch(roidb, num_classes):
         ann_ids = roidb[0]['ann_id'][gt_inds]
         gt_masks = np.empty((len(gt_inds), im_blob.shape[1], im_blob.shape[2]), dtype=np.uint16)
         for i in range(ann_ids.shape[0]):
-            mask = gtmask_blob[0,:,:].reshape((gtmask.shape[1],gtmask.shape[2]))
+            mask = gtmask_blob[0,:,:].reshape((gtmask_blob.shape[1],gtmask_blob.shape[2]))
             mask[np.where(mask != ann_ids[i])] = 0
             mask[np.where(mask == ann_ids[i])] = 1
             mask = cv2.resize(mask, None, None, fx=im_scales[0], fy=im_scales[0],
                               interpolation=cv2.INTER_LINEAR)
-            gt_masks[i,:,:] = mask.rint().astype(int)
+            gt_masks[i,:,:] = mask
         blobs['gt_masks'] = gt_masks
 
         blobs['gt_boxes'] = gt_boxes
@@ -168,8 +168,7 @@ def _get_image_blob(roidb, scale_inds):
     #change in mask rcnn
     gtmask_blob = gtmask_list_to_blob(unprocessed_gtmasks)
 
-    return blob, gtmas
-    k_blob, im_scales
+    return blob, gtmask_blob, im_scales
 
 def _project_im_rois(im_rois, im_scale_factor):
     """Project image RoIs into the rescaled training image."""

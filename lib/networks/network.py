@@ -191,7 +191,7 @@ class Network(object):
             # change in mask rcnn
             rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights, mask_gt, mask_weights = \
             tf.py_func(proposal_target_layer_py,[input[0],input[1],input[2],classes],\
-                [tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float])
+                [tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32])
 
             rois = tf.reshape(rois,[-1,5] , name = 'rois') 
             labels = tf.convert_to_tensor(tf.cast(labels,tf.int32), name = 'labels')
@@ -277,6 +277,10 @@ class Network(object):
         return tf.nn.dropout(input, keep_prob, name=name)
 
     # change in mask rcnn
+    @layer
+    def sigmoid(self, input, name):
+	return tf.nn.sigmoid(input, name=name)
+
     @layer
     def upscore(self, input, ksize, stride, c_out, name, trainable=True):
         print name

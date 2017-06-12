@@ -12,6 +12,8 @@ import numpy.random as npr
 import cv2
 from fast_rcnn.config import cfg
 from utils.blob import prep_im_for_blob, im_list_to_blob
+# change in mask rcnn
+from utils.blob import gtmask_list_to_blob
 import mat4py.mat4py
 
 def get_minibatch(roidb, num_classes):
@@ -49,7 +51,8 @@ def get_minibatch(roidb, num_classes):
             mask = gtmask_blob[0,:,:].reshape((gtmask_blob.shape[1],gtmask_blob.shape[2]))
             mask[np.where(mask != ann_ids[i])] = 0
             mask[np.where(mask == ann_ids[i])] = 1
-            mask = cv2.resize(mask, None, None, fx=im_scales[0], fy=im_scales[0],
+            mask = mask.astype(np.uint16)
+	    mask = cv2.resize(mask, None, None, fx=im_scales[0], fy=im_scales[0],
                               interpolation=cv2.INTER_LINEAR)
             gt_masks[i,:,:] = mask
         blobs['gt_masks'] = gt_masks

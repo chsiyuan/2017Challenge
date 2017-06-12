@@ -303,7 +303,7 @@ class coco(imdb):
 
         ds_utils.validate_boxes(boxes, width=width, height=height)
         overlaps = scipy.sparse.csr_matrix(overlaps)
-                return {'boxes' : boxes,
+        return {'boxes' : boxes,
                 'gt_classes': gt_classes,
                 'gt_overlaps' : overlaps,
                 'flipped' : False,

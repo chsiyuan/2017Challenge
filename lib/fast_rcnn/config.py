@@ -61,7 +61,7 @@ __C.IS_MULTISCALE = False
 # Each scale is the pixel size of an image's shortest side
 
 # change in mask rcnn
-_C.TRAIN.ROI_OUTPUT_SIZE = 7
+__C.TRAIN.ROI_OUTPUT_SIZE = 7
 
 __C.TRAIN.SCALES = (600,)
 

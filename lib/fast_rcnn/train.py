@@ -102,6 +102,9 @@ class SolverWrapper(object):
 
     def train_model(self, sess, max_iters):
         """Network training loop."""
+	
+	# change in mask rcnn
+	num_classes = self.imdb.num_classes
 
         data_layer = get_data_layer(self.roidb, self.imdb.num_classes)
 
@@ -141,8 +144,8 @@ class SolverWrapper(object):
         # mask loss
         mask_out = self.net.get_output('mask_out')
         mask_shape = mask_out.get_shape().as_list()
-        mask_gt = tf.reshape(self.net.get_output('roi_data')[5],[-1,mask_shape[1],mask_shape[2],num_classes])
-        mask_weights = tf.reshape(self.net.get_output('roi_data')[6],[-1,mask_shape[1],mask_shape[2],num_classes])
+        mask_gt = tf.reshape(self.net.get_output('roi-data')[5],[-1,mask_shape[1],mask_shape[2],num_classes])
+        mask_weights = tf.reshape(self.net.get_output('roi-data')[6],[-1,mask_shape[1],mask_shape[2],num_classes])
         loss_mask_all = tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(logits=mask_out, labels=mask_gt), mask_weights)
         loss_mask = tf.reduce_mean(tf.reduce_sum(loss_mask_all, 3))
 

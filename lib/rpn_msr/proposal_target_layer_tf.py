@@ -12,6 +12,8 @@ from fast_rcnn.config import cfg
 from fast_rcnn.bbox_transform import bbox_transform
 from utils.cython_bbox import bbox_overlaps
 import pdb
+# change in mask rcnn
+import cv2
 
 DEBUG = False
 
@@ -62,8 +64,11 @@ def proposal_target_layer(rpn_rois, gt_boxes, gt_masks, _num_classes):
     bbox_inside_weights = bbox_inside_weights.reshape(-1,_num_classes*4)
 
     bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
+    # change on mask rcnn
+    mask_gt = mask_gt.reshape(-1, cfg.TRAIN.ROI_OUTPUT_SIZE*2, _num_classes).astype(np.float32)
+    mask_weights = mask_weights.reshape(-1, cfg.TRAIN.ROI_OUTPUT_SIZE*2, cfg.TRAIN.ROI_OUTPUT_SIZE*2, _num_classes).astype(np.float32)
 
-    return rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights
+    return rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights, mask_gt, mask_weights
 
 def _get_bbox_regression_labels(bbox_target_data, mask_gt_data, num_classes):
     """Bounding-box regression targets (bbox_target_data) are stored in a
@@ -173,7 +178,7 @@ def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image
     mask_gt_data = np.zeros((len(keep_inds),scale,scale))
     for i in range(len(keep_inds)):
         if labels[i] > 0:
-            roi = roi[i,1:5]
+            roi = rois[i,1:5]
             # roi: xmin ymin xmax ymax
             mask_gt_clip = mask_gt_keep[i, int(round(roi[1])) : int(round(roi[3]))+1, int(round(roi[0])) : int(round(roi[2]))+1]
             fx = float(scale)/mask_gt_clip.shape[1]
@@ -184,4 +189,4 @@ def _sample_rois(all_rois, gt_boxes, gt_masks, fg_rois_per_image, rois_per_image
     bbox_targets, bbox_inside_weights, mask_gt, mask_weights = \
         _get_bbox_regression_labels(bbox_target_data, mask_gt_data, num_classes)
 
-    return labels, rois, bbox_targets, bbox_inside_weights
+    return labels, rois, bbox_targets, bbox_inside_weights, mask_gt, mask_weights

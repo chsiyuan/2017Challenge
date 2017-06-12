@@ -111,6 +111,6 @@ class VGGnet_train(Network):
 
         (self.feed('conv6_3')
             .upscore(2, 2, 256, name='up_1')
-            .conv(1, 1, n_classes, 1, 1, name='mask_out')
+            .conv(1, 1, n_classes, 1, 1, relu = False, name='mask_out')
             .sigmoid(name='mask_prob'))
 

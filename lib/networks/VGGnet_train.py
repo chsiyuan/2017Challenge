@@ -73,7 +73,9 @@ class VGGnet_train(Network):
         (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info')
              .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
 
-        (self.feed('rpn_rois','gt_boxes')
+        #change in mask rcnn
+        # gt_masks: # of objs * h * w
+        (self.feed('rpn_rois','gt_boxes','gt_masks')
              .proposal_target_layer(n_classes,name = 'roi-data'))
 
 

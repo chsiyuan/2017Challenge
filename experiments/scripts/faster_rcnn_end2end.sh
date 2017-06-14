@@ -59,4 +59,3 @@ time python ./tools/train_net.py --device ${DEV} --device_id ${DEV_ID} \
 set +x
 NET_FINAL=`grep -B 1 "done solving" ${LOG} | grep "Wrote snapshot" | awk '{print $4}'`
 set -x
-

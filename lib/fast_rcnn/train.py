@@ -101,7 +101,11 @@ class SolverWrapper(object):
 
 
     def train_model(self, sess, max_iters):
+        num_classes = self.imdb.num_classes
         """Network training loop."""
+	
+	    # change in mask rcnn
+	   
 
         data_layer = get_data_layer(self.roidb, self.imdb.num_classes)
 
@@ -137,8 +141,17 @@ class SolverWrapper(object):
         smooth_l1 = self._modified_smooth_l1(1.0, bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
         loss_box = tf.reduce_mean(tf.reduce_sum(smooth_l1, reduction_indices=[1]))
 
+        # change in mask rcnn
+        # mask loss
+        mask_out = self.net.get_output('mask_out')
+        mask_shape = mask_out.get_shape().as_list()
+        mask_gt = tf.reshape(self.net.get_output('roi-data')[5],[-1,mask_shape[1],mask_shape[2],num_classes])
+        mask_weights = tf.reshape(self.net.get_output('roi-data')[6],[-1,mask_shape[1],mask_shape[2],num_classes])
+        loss_mask_all = tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(logits=mask_out, labels=mask_gt), mask_weights)
+        loss_mask = tf.reduce_mean(tf.reduce_sum(loss_mask_all, 3))
+
         # final loss
-        loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
+        loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box + loss_mask
 
         # optimizer and learning rate
         global_step = tf.Variable(0, trainable=False)
@@ -161,8 +174,9 @@ class SolverWrapper(object):
             blobs = data_layer.forward()
 
             # Make one SGD update
+            # change in mask rcnn
             feed_dict={self.net.data: blobs['data'], self.net.im_info: blobs['im_info'], self.net.keep_prob: 0.5, \
-                           self.net.gt_boxes: blobs['gt_boxes']}
+                           self.net.gt_boxes: blobs['gt_boxes'], self.net.gt_masks: blobs['gt_masks']}
 
             run_options = None
             run_metadata = None
@@ -172,7 +186,8 @@ class SolverWrapper(object):
 
             timer.tic()
 
-            rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
+            # change in mask rcnn
+            rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, loss_mask_value, _ = sess.run([rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, loss_mask, train_op],
                                                                                                 feed_dict=feed_dict,
                                                                                                 options=run_options,
                                                                                                 run_metadata=run_metadata)
@@ -185,9 +200,10 @@ class SolverWrapper(object):
                 trace_file.write(trace.generate_chrome_trace_format(show_memory=False))
                 trace_file.close()
 
+            # change in mask rcnn
             if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
-                print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, lr: %f'%\
-                        (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value ,rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, lr.eval())
+                print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, loss_mask: %.4f, lr: %f'%\
+                        (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value + loss_mask_value ,rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, loss_mask_value, lr.eval())
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
 
             if (iter+1) % cfg.TRAIN.SNAPSHOT_ITERS == 0:
@@ -209,6 +225,7 @@ def get_training_roidb(imdb):
         if cfg.IS_MULTISCALE:
             gdl_roidb.prepare_roidb(imdb)
         else:
+            # run this command
             rdl_roidb.prepare_roidb(imdb)
     else:
         rdl_roidb.prepare_roidb(imdb)

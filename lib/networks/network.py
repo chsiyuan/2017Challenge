@@ -182,20 +182,25 @@ class Network(object):
 
     @layer
     def proposal_target_layer(self, input, classes, name):
+        #classes = 81
+        # input 0 rpn_rois, 1 gt_boxes, 2 gt_masks
         if isinstance(input[0], tuple):
             input[0] = input[0][0]
         with tf.variable_scope(name) as scope:
 
-            rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights = tf.py_func(proposal_target_layer_py,[input[0],input[1],classes],[tf.float32,tf.float32,tf.float32,tf.float32,tf.float32])
+            # change in mask rcnn
+            rois,labels,bbox_targets,bbox_inside_weights,bbox_outside_weights, mask_gt, mask_weights = \
+            tf.py_func(proposal_target_layer_py,[input[0],input[1],input[2],classes],\
+                [tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32,tf.float32])
 
             rois = tf.reshape(rois,[-1,5] , name = 'rois') 
             labels = tf.convert_to_tensor(tf.cast(labels,tf.int32), name = 'labels')
             bbox_targets = tf.convert_to_tensor(bbox_targets, name = 'bbox_targets')
             bbox_inside_weights = tf.convert_to_tensor(bbox_inside_weights, name = 'bbox_inside_weights')
             bbox_outside_weights = tf.convert_to_tensor(bbox_outside_weights, name = 'bbox_outside_weights')
-
-           
-            return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights
+            mask_gt = tf.convert_to_tensor(mask_gt, name = 'mask_gt')
+            mask_weights = tf.convert_to_tensor(mask_weights, name = 'mask_weights')
+            return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights, mask_gt, mask_weights
 
 
     @layer
@@ -270,3 +275,33 @@ class Network(object):
     @layer
     def dropout(self, input, keep_prob, name):
         return tf.nn.dropout(input, keep_prob, name=name)
+
+    # change in mask rcnn
+    @layer
+    def sigmoid(self, input, name):
+	return tf.nn.sigmoid(input, name=name)
+
+    @layer
+    def upscore(self, input, ksize, stride, c_out, name, relu = True, trainable=True):
+        print name
+        strides = [1, stride, stride, 1]
+        print input
+        with tf.variable_scope(name) as scope:
+            in_shape = input.get_shape().as_list()
+            #(batches, h_in , w_in, channels)
+            c_in = in_shape[-1]
+            h_out = in_shape[1] * 2
+            w_out = in_shape[2] * 2
+            batch_size = tf.shape(input)[0]
+            out_shape = tf.stack([batch_size, h_out, w_out, c_out])
+
+            kernel_size = [ksize, ksize, c_out, c_in]
+
+            # initialize and get variable
+            init_weights = tf.truncated_normal_initializer(0.0, stddev=0.01)
+            kernel = self.make_var('up_kernel', kernel_size, init_weights, trainable)
+
+            output = tf.nn.conv2d_transpose(input, kernel, out_shape, strides=strides, padding='SAME', data_format='NHWC')
+
+            output 
+            return tf.reshape(output,[-1, h_out, w_out, c_out])

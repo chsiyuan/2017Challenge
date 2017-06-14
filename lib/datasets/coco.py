@@ -107,6 +107,13 @@ class coco(imdb):
         """
         return self.image_path_from_index(self._image_index[i])
 
+    #change in mask rcnn
+    def gtmask_path_at(self, i):
+        """
+        Return the absolute path to image i in the image sequence.
+        """
+        return self.gtmask_path_from_index(self._image_index[i])
+
     def image_path_from_index(self, index):
         """
         Construct an image path from the image's "index" identifier.
@@ -120,6 +127,21 @@ class coco(imdb):
         assert osp.exists(image_path), \
                 'Path does not exist: {}'.format(image_path)
         return image_path
+
+    #change in mask rcnn
+    def gtmask_path_from_index(self, index):
+        """
+        Construct an image path from the image's "index" identifier.
+        """
+        # path e.g., /data/coco/gt_mask/train2014/groundt_train_000000000009.png
+        file_name = ('groundt_train_' +
+                     str(index).zfill(12) + '.mat')
+        gtmask_path = osp.join(self._data_path, 'gt_mask',
+                              self._data_name, file_name)
+        assert osp.exists(gtmask_path), \
+                'Path does not exist: {}'.format(gtmask_path)
+        return gtmask_path
+
 
     def selective_search_roidb(self):
         return self._roidb_from_proposals('selective_search')
@@ -255,6 +277,8 @@ class coco(imdb):
         gt_classes = np.zeros((num_objs), dtype=np.int32)
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
         seg_areas = np.zeros((num_objs), dtype=np.float32)
+        # change in mask rcnn
+        ann_id = np.zeros((num_objs), dtype = np.int32)
 
         # Lookup table to map from COCO category ids to our internal class
         # indices
@@ -273,6 +297,9 @@ class coco(imdb):
                 overlaps[ix, :] = -1.0
             else:
                 overlaps[ix, cls] = 1.0
+            # change in mask rcnn
+            ann_id[ix] = obj['id']
+
 
         ds_utils.validate_boxes(boxes, width=width, height=height)
         overlaps = scipy.sparse.csr_matrix(overlaps)
@@ -280,7 +307,8 @@ class coco(imdb):
                 'gt_classes': gt_classes,
                 'gt_overlaps' : overlaps,
                 'flipped' : False,
-                'seg_areas' : seg_areas}
+                'seg_areas' : seg_areas,
+                'ann_id': ann_id}
 
     def _get_box_file(self, index):
         # first 14 chars / first 22 chars / all chars + .mat

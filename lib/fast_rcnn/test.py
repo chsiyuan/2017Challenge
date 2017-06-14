@@ -16,6 +16,7 @@ from fast_rcnn.bbox_transform import clip_boxes, bbox_transform_inv
 import matplotlib.pyplot as plt
 from tensorflow.python.client import timeline
 import time
+import pdb
 
 def _get_image_blob(im):
     """Converts an image into a network input.
@@ -173,11 +174,13 @@ def im_detect(sess, net, im, boxes=None):
         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
         run_metadata = tf.RunMetadata()
 
-    cls_score, cls_prob, bbox_pred, rois = sess.run([net.get_output('cls_score'), net.get_output('cls_prob'), net.get_output('bbox_pred'),net.get_output('rois')],
+    #change in mask rcnn
+    cls_score, cls_prob, bbox_pred, mask_prob, rois = sess.run([net.get_output('cls_score'), net.get_output('cls_prob'), net.get_output('bbox_pred'), net.get_output('mask_prob'), net.get_output('rois')],
                                                     feed_dict=feed_dict,
                                                     options=run_options,
                                                     run_metadata=run_metadata)
-
+    pdb.set_trace()
+    
     if cfg.TEST.HAS_RPN:
         assert len(im_scales) == 1, "Only single-image batch implemented"
         boxes = rois[:, 1:5] / im_scales[0]

@@ -25,6 +25,9 @@ def prepare_roidb(imdb):
     roidb = imdb.roidb
     for i in xrange(len(imdb.image_index)):
         roidb[i]['image'] = imdb.image_path_at(i)
+        # change in mask rcnn
+        roidb[i]['gt_mask'] = imdb.gtmask_path_at(i)           
+
         roidb[i]['width'] = sizes[i][0]
         roidb[i]['height'] = sizes[i][1]
         # need gt_overlaps as a dense array for argmax

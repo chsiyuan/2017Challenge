@@ -111,9 +111,15 @@ class coco(imdb):
     def gtmask_path_at(self, i):
         """
         Return the absolute path to image i in the image sequence.
+	"""
+	return self.gtmask_path_from_index(self._image_index[i])
+    
+    def mask_path_at(self, i):
         """
-        return self.gtmask_path_from_index(self._image_index[i])
-
+        Return the absolute path to deformed mask of image i in the image sequence.
+        """
+        return self.mask_path_from_index(self._image_index[i])
+    
     def image_path_from_index(self, index):
         """
         Construct an image path from the image's "index" identifier.
@@ -142,6 +148,17 @@ class coco(imdb):
                 'Path does not exist: {}'.format(gtmask_path)
         return gtmask_path
 
+    def mask_path_from_index(self, index):
+        # Example mask path for index 119993:
+        # images/train2014/deformed_mask/deformation_train_000000119993.png
+        # file_name = self._COCO.loadImgs(index)[0]['deformed_mask']
+        file_name = ('deformation_train_' + 
+                    str(index).zfill(12) + '.png')
+        mask_path = osp.join(self._data_path, 'images', 
+                              self._data_name, 'deformed_mask', file_name)
+	assert osp.exists(mask_path), \
+		'Path does not exist: {}'.format(mask_path)
+	return mask_path
 
     def selective_search_roidb(self):
         return self._roidb_from_proposals('selective_search')

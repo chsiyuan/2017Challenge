@@ -30,6 +30,7 @@ def prepare_roidb(imdb):
 
         roidb[i]['width'] = sizes[i][0]
         roidb[i]['height'] = sizes[i][1]
+        roidb[i]['deformed_mask'] = imdb.mask_path_at(i)
         # need gt_overlaps as a dense array for argmax
         gt_overlaps = roidb[i]['gt_overlaps'].toarray()
         # max overlap with gt over classes (columns)

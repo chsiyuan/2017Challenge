@@ -59,10 +59,3 @@ time python ./tools/train_net.py --device ${DEV} --device_id ${DEV_ID} \
 set +x
 NET_FINAL=`grep -B 1 "done solving" ${LOG} | grep "Wrote snapshot" | awk '{print $4}'`
 set -x
-
-time python ./tools/test_net.py --device ${DEV} --device_id ${DEV_ID} \
-  --weights ${NET_FINAL} \
-  --imdb ${TEST_IMDB} \
-  --cfg experiments/cfgs/faster_rcnn_end2end.yml \
-  --network VGGnet_test \
-  ${EXTRA_ARGS}

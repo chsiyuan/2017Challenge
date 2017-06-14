@@ -11,6 +11,7 @@ import numpy as np
 import os, sys, cv2
 import argparse
 from networks.factory import get_network
+import pdb
 
 
 # CLASSES = ('__background__',
@@ -72,7 +73,8 @@ def demo(sess, net, image_name, force_cpu):
     """Detect object classes in an image using pre-computed object proposals."""
 
     # Load the demo image
-    im_file = os.path.join(cfg.DATA_DIR, 'demo', image_name)
+    im_file = os.path.join(cfg.DATA_DIR, '../', image_name)
+    pdb.set_trace()
     #im_file = os.path.join('/home/corgi/Lab/label/pos_frame/ACCV/training/000001/',image_name)
     im = cv2.imread(im_file)
 
@@ -89,7 +91,7 @@ def demo(sess, net, image_name, force_cpu):
     fig, ax = plt.subplots(figsize=(12, 12))
     ax.imshow(im, aspect='equal')
 
-    CONF_THRESH = 0.8
+    CONF_THRESH = 0.5
     NMS_THRESH = 0.3
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1 # because we skipped background
@@ -154,7 +156,7 @@ if __name__ == '__main__':
         _, _= im_detect(sess, net, im)
 
 
-    im_names = ['/z/home/chsiyuan/Documents/2017Challenge/data/test/images/COCO_val2014_000000000074.jpg']
+    im_names = ['data/test/images/COCO_val2014_000000000074.jpg']
 
 
     for im_name in im_names:
@@ -162,5 +164,5 @@ if __name__ == '__main__':
         print 'Demo for data/demo/{}'.format(im_name)
         demo(sess, net, im_name, force_cpu)
 
-    plt.savefig('/z/home/chsiyuan/Documents/2017Challenge/data/test/result/result_COCO_val2014_000000000074.png')
+    plt.savefig('data/test/result/result_COCO_val2014_000000000074.png')
 

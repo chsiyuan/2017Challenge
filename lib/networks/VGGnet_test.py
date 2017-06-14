@@ -52,13 +52,31 @@ class VGGnet_test(Network):
         (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info')
              .proposal_layer(_feat_stride, anchor_scales, 'TEST', name = 'rois'))
         
+        # (self.feed('conv5_3', 'rois')
+        #      .roi_pool(7, 7, 1.0/16, name='pool_5')
+        #      .fc(4096, name='fc6')
+        #      .fc(4096, name='fc7')
+        #      .fc(n_classes, relu=False, name='cls_score')
+        #      .softmax(name='cls_prob'))
+
+        # (self.feed('fc7')
+        #      .fc(n_classes*4, relu=False, name='bbox_pred'))
+
+        # change in mask rcnn
         (self.feed('conv5_3', 'rois')
              .roi_pool(7, 7, 1.0/16, name='pool_5')
-             .fc(4096, name='fc6')
-             .fc(4096, name='fc7')
+             .conv(3, 3, 1024, 1, 1, name='conv6_1')
+             .conv(3, 3, 1024, 1, 1, name='conv6_2')
+             .conv(3, 3, 1024, 1, 1, name='conv6_3')
+             .fc(1024, name='fc6')
+             .fc(1024, name='fc7')
              .fc(n_classes, relu=False, name='cls_score')
              .softmax(name='cls_prob'))
 
         (self.feed('fc7')
-             .fc(n_classes*4, relu=False, name='bbox_pred'))
+            .fc(n_classes*4, relu=False, name = 'bbox_pred'))
 
+        (self.feed('conv6_3')
+            .upscore(2, 2, 256, name='up_1')
+            .conv(1, 1, n_classes, 1, 1, relu = False, name='mask_out')
+            .sigmoid(name='mask_prob'))

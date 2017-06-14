@@ -101,10 +101,11 @@ class SolverWrapper(object):
 
 
     def train_model(self, sess, max_iters):
+        num_classes = self.imdb.num_classes
         """Network training loop."""
 	
-	# change in mask rcnn
-	num_classes = self.imdb.num_classes
+	    # change in mask rcnn
+	   
 
         data_layer = get_data_layer(self.roidb, self.imdb.num_classes)
 

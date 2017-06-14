@@ -282,7 +282,7 @@ class Network(object):
 	return tf.nn.sigmoid(input, name=name)
 
     @layer
-    def upscore(self, input, ksize, stride, c_out, name, trainable=True):
+    def upscore(self, input, ksize, stride, c_out, name, relu = True, trainable=True):
         print name
         strides = [1, stride, stride, 1]
         print input
@@ -303,4 +303,5 @@ class Network(object):
 
             output = tf.nn.conv2d_transpose(input, kernel, out_shape, strides=strides, padding='SAME', data_format='NHWC')
 
+            output 
             return tf.reshape(output,[-1, h_out, w_out, c_out])

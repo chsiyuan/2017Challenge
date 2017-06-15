@@ -179,8 +179,8 @@ def im_detect(sess, net, im, boxes=None):
                                                     feed_dict=feed_dict,
                                                     options=run_options,
                                                     run_metadata=run_metadata)
-    pdb.set_trace()
-    
+    # pdb.set_trace()
+
     if cfg.TEST.HAS_RPN:
         assert len(im_scales) == 1, "Only single-image batch implemented"
         boxes = rois[:, 1:5] / im_scales[0]
@@ -214,7 +214,14 @@ def im_detect(sess, net, im, boxes=None):
         trace_file.write(trace.generate_chrome_trace_format(show_memory=False))
         trace_file.close()
 
-    return scores, pred_boxes
+    # change in mask rcnn
+    label = np.argmax(scores, axis=1)
+    mask = np.zeros(mask_prob.shape[0:3])
+    for i in range(len(label)):
+        l = label[i]
+        mask[i,:,:] = mask_prob[i,:,:,l]
+
+    return scores, pred_boxes, mask
 
 
 def vis_detections(im, class_name, dets, thresh=0.8):

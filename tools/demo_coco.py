@@ -11,6 +11,8 @@ import numpy as np
 import os, sys, cv2
 import argparse
 from networks.factory import get_network
+import random
+import colorsys
 import pdb
 
 
@@ -39,11 +41,21 @@ CLASSES = ('__background__',
            'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 
            'hair drier', 'toothbrush')
 
-def vis_detections(im, class_name, dets,ax, thresh=0.5):
+def rand_hsl():
+    '''Generate a random hsl color.'''
+    h = random.uniform(0.02, 0.31) + random.choice([0, 1/3.0,2/3.0])
+    l = random.uniform(0.3, 0.8)
+    s = random.uniform(0.3, 0.8)
+
+    rgb = colorsys.hls_to_rgb(h, l, s)
+    return (int(rgb[0]*255), int(rgb[1]*255), int(rgb[2]*255))
+
+def vis_detections(im, im_mask, class_name, dets, masks, ax, thresh=0.5):
     """Draw detected bounding boxes."""
+    #pdb.set_trace()
     inds = np.where(dets[:, -1] >= thresh)[0]
     if len(inds) == 0:
-        return
+        return im_mask
 
     for i in inds:
         bbox = dets[i, :4]
@@ -60,6 +72,29 @@ def vis_detections(im, class_name, dets,ax, thresh=0.5):
                 bbox=dict(facecolor='blue', alpha=0.5),
                 fontsize=14, color='white')
 
+
+        # change in mask rcnn
+        mask = masks[i,:,:]
+        bbox_round = np.around(bbox).astype(int)
+        mask_h = (float)(mask.shape[1])
+        mask_w = (float)(mask.shape[0])
+        height = bbox_round[3]-bbox_round[1]+1
+        width  = bbox_round[2]-bbox_round[0]+1
+        fx = width/mask_w
+        fy = height/mask_h
+        mask_resize = cv2.resize(mask, None, fx=fx, fy=fy)
+        mask_resize += 0.2 # <0.1 -> 0; >0.1 -> 1
+        mask_resize = np.around(mask_resize).astype(im.dtype)
+        rand_color = rand_hsl()
+        im_mask_temp = np.zeros(im.shape).astype(im.dtype)
+        #pdb.set_trace()
+        for ii in range(3):
+            im_mask_temp[bbox_round[1]:bbox_round[3]+1, bbox_round[0]:bbox_round[2]+1, ii] \
+            += rand_color[ii]*mask_resize
+        im_mask += im_mask_temp
+
+
+
     ax.set_title(('{} detections with '
                   'p({} | box) >= {:.1f}').format(class_name, class_name,
                                                   thresh),
@@ -67,6 +102,8 @@ def vis_detections(im, class_name, dets,ax, thresh=0.5):
     plt.axis('off')
     plt.tight_layout()
     plt.draw()
+    #pdb.set_trace()
+    return im_mask
 
 
 def demo(sess, net, image_name, force_cpu):
@@ -74,20 +111,25 @@ def demo(sess, net, image_name, force_cpu):
 
     # Load the demo image
     im_file = os.path.join(cfg.DATA_DIR, '../', image_name)
-    pdb.set_trace()
+    # pdb.set_trace()
     #im_file = os.path.join('/home/corgi/Lab/label/pos_frame/ACCV/training/000001/',image_name)
     im = cv2.imread(im_file)
 
     # Detect all object classes and regress object bounds
     timer = Timer()
     timer.tic()
-    scores, boxes = im_detect(sess, net, im)
+    scores, boxes, masks = im_detect(sess, net, im)
     timer.toc()
     print ('Detection took {:.3f}s for '
            '{:d} object proposals').format(timer.total_time, boxes.shape[0])
 
     # Visualize detections for each class
+    # pdb.set_trace()
     im = im[:, :, (2, 1, 0)]
+
+    # change in mask rcnn
+    im_mask = np.zeros(im.shape).astype(im.dtype)
+
     fig, ax = plt.subplots(figsize=(12, 12))
     ax.imshow(im, aspect='equal')
 
@@ -100,9 +142,19 @@ def demo(sess, net, image_name, force_cpu):
         dets = np.hstack((cls_boxes,
                           cls_scores[:, np.newaxis])).astype(np.float32)
         keep = nms(dets, NMS_THRESH, force_cpu)
+        # pdb.set_trace()
         dets = dets[keep, :]
+        # change in mask rcnn
+        mask = masks[keep, :, :]
+        #pdb.set_trace()
         print ('After nms, {:d} object proposals').format(dets.shape[0])
-        vis_detections(im, cls, dets, ax, thresh=CONF_THRESH)
+        im_mask = vis_detections(im, im_mask, cls, dets, mask, ax, thresh=CONF_THRESH)
+
+    im += im_mask/2;
+    im_mask_grey = cv2.cvtColor(im_mask, cv2.COLOR_RGB2GRAY)
+    im_mask_grey[np.where(im_mask_grey!=0)] = 255
+    cv2.imwrite('data/test/result/img_with_mask.png', im[:,:,(2,1,0)])
+    cv2.imwrite('data/test/result/mask.png',im_mask_grey)
 
 def parse_args():
     """Parse input arguments."""
@@ -153,7 +205,7 @@ if __name__ == '__main__':
     # Warmup on a dummy image
     im = 128 * np.ones((300, 300, 3), dtype=np.uint8)
     for i in xrange(2):
-        _, _= im_detect(sess, net, im)
+        _, _, _= im_detect(sess, net, im)
 
 
     im_names = ['data/test/images/COCO_val2014_000000000074.jpg']

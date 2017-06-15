@@ -11,7 +11,7 @@ anchor_scales = [8, 16, 32]
 class VGGnet_train(Network):
     def __init__(self, trainable=True):
         self.inputs = []
-        self.data = tf.placeholder(tf.float32, shape=[None, None, None, 3])
+        self.data = tf.placeholder(tf.float32, shape=[None, None, None, 4])
         self.im_info = tf.placeholder(tf.float32, shape=[None, 3])
         self.gt_boxes = tf.placeholder(tf.float32, shape=[None, 5])
 	self.gt_masks = tf.placeholder(tf.float32, shape=[None, None, None])
@@ -115,8 +115,3 @@ class VGGnet_train(Network):
             .upscore(2, 2, 256, name='up_1')
             .conv(1, 1, n_classes, 1, 1, relu = False, name='mask_out')
             .sigmoid(name='mask_prob'))
-
-        (self.feed('conv6_3')
-             .upscore(2, 2, 256, name='up_1')
-             .conv(1, 1, n_classes, 1, 1, relu = False, name='mask_out')
-             .sigmoid(name='mask_prob'))

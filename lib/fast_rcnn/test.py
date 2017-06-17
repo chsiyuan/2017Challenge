@@ -179,7 +179,7 @@ def im_detect(sess, net, im, boxes=None):
                                                     feed_dict=feed_dict,
                                                     options=run_options,
                                                     run_metadata=run_metadata)
-    # pdb.set_trace()
+    pdb.set_trace()
 
     if cfg.TEST.HAS_RPN:
         assert len(im_scales) == 1, "Only single-image batch implemented"

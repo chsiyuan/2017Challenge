@@ -83,7 +83,7 @@ def vis_detections(im, im_mask, class_name, dets, masks, ax, thresh=0.5):
         fx = width/mask_w
         fy = height/mask_h
         mask_resize = cv2.resize(mask, None, fx=fx, fy=fy)
-        mask_resize += 0.2 # <0.1 -> 0; >0.1 -> 1
+        mask_resize += 0 # <0.1 -> 0; >0.1 -> 1
         mask_resize = np.around(mask_resize).astype(im.dtype)
         rand_color = rand_hsl()
         im_mask_temp = np.zeros(im.shape).astype(im.dtype)
@@ -133,7 +133,7 @@ def demo(sess, net, image_name, force_cpu):
     fig, ax = plt.subplots(figsize=(12, 12))
     ax.imshow(im, aspect='equal')
 
-    CONF_THRESH = 0.5
+    CONF_THRESH = 0.8
     NMS_THRESH = 0.3
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1 # because we skipped background
@@ -208,7 +208,7 @@ if __name__ == '__main__':
         _, _, _= im_detect(sess, net, im)
 
 
-    im_names = ['data/test/images/COCO_val2014_000000000074.jpg']
+    im_names = ['data/test/images/COCO_val2014_000000003964.jpg']
 
 
     for im_name in im_names:
@@ -216,5 +216,5 @@ if __name__ == '__main__':
         print 'Demo for data/demo/{}'.format(im_name)
         demo(sess, net, im_name, force_cpu)
 
-    plt.savefig('data/test/result/result_COCO_val2014_000000000074.png')
+    plt.savefig('data/test/result/result_COCO_val2014_000000003964.png')
 

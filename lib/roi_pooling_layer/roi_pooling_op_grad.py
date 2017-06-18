@@ -18,10 +18,10 @@ def _roi_pool_shape(op):
   pooled_width = op.get_attr('pooled_width')
 
   output_shape = tf.TensorShape([num_rois, pooled_height, pooled_width, channels])
-  return [output_shape, output_shape]
+  return [output_shape, output_shape, output_shape]
 
 @ops.RegisterGradient("RoiPool")
-def _roi_pool_grad(op, grad, _):
+def _roi_pool_grad(op, grad, _, __):
   """The gradients for `roi_pool`.
   Args:
     op: The `roi_pool` `Operation` that we are differentiating, which we can use
@@ -32,12 +32,13 @@ def _roi_pool_grad(op, grad, _):
   """
   data = op.inputs[0]
   rois = op.inputs[1]
-  argmax = op.outputs[1]
+  argmax_x = op.outputs[1]
+  argmax_y = op.outputs[2]
   pooled_height = op.get_attr('pooled_height')
   pooled_width = op.get_attr('pooled_width')
   spatial_scale = op.get_attr('spatial_scale')
 
   # compute gradient
-  data_grad = roi_pooling_op.roi_pool_grad(data, rois, argmax, grad, pooled_height, pooled_width, spatial_scale)
+  data_grad = roi_pooling_op.roi_pool_grad(data, rois, argmax_x, argmax_y, grad, pooled_height, pooled_width, spatial_scale)
 
   return [data_grad, None]  # List of one Tensor, since we have one input

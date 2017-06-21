@@ -15,8 +15,12 @@ from utils.blob import prep_im_for_blob, im_list_to_blob
 # change in mask rcnn
 from utils.blob import gtmask_list_to_blob
 import mat4py.mat4py
+import pdb
+
+
 
 def get_minibatch(roidb, num_classes):
+    DEBUG = False
     """Given a roidb, construct a minibatch sampled from it."""
     num_images = len(roidb)
     # Sample random scales to use for each image in this batch
@@ -35,6 +39,10 @@ def get_minibatch(roidb, num_classes):
 
     blobs = {'data': im_blob}
 
+    if DEBUG:
+        print 'in get_minbatch'
+        pdb.set_trace()
+
     if cfg.TRAIN.HAS_RPN:
         assert len(im_scales) == 1, "Single batch only"
         assert len(roidb) == 1, "Single batch only"
@@ -48,11 +56,12 @@ def get_minibatch(roidb, num_classes):
         ann_ids = roidb[0]['ann_id'][gt_inds]
         gt_masks = np.empty((len(gt_inds), im_blob.shape[1], im_blob.shape[2]), dtype=np.uint16)
         for i in range(ann_ids.shape[0]):
-            mask = gtmask_blob[0,:,:].reshape((gtmask_blob.shape[1],gtmask_blob.shape[2]))
+            mask =  np.copy(gtmask_blob[0,:,:])
+            mask = mask.reshape((gtmask_blob.shape[1],gtmask_blob.shape[2]))
             mask[np.where(mask != ann_ids[i])] = 0
             mask[np.where(mask == ann_ids[i])] = 1
             mask = mask.astype(np.uint16)
-	    mask = cv2.resize(mask, None, None, fx=im_scales[0], fy=im_scales[0],
+            mask = cv2.resize(mask, None, None, fx=im_scales[0], fy=im_scales[0],
                               interpolation=cv2.INTER_LINEAR)
             gt_masks[i,:,:] = mask
         blobs['gt_masks'] = gt_masks
@@ -96,6 +105,10 @@ def get_minibatch(roidb, num_classes):
             blobs['bbox_inside_weights'] = bbox_inside_blob
             blobs['bbox_outside_weights'] = \
                 np.array(bbox_inside_blob > 0).astype(np.float32)
+
+    if DEBUG:
+        print 'in get_minbatch'
+        pdb.set_trace()
 
     return blobs
 

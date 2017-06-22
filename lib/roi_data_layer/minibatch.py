@@ -48,7 +48,8 @@ def get_minibatch(roidb, num_classes):
         ann_ids = roidb[0]['ann_id'][gt_inds]
         gt_masks = np.empty((len(gt_inds), im_blob.shape[1], im_blob.shape[2]), dtype=np.uint16)
         for i in range(ann_ids.shape[0]):
-            mask = gtmask_blob[0,:,:].reshape((gtmask_blob.shape[1],gtmask_blob.shape[2]))
+            mask = np.copy(gtmask_blob[0,:,:])
+            mask = mask.reshape((gtmask_blob.shape[1],gtmask_blob.shape[2]))
             mask[np.where(mask != ann_ids[i])] = 0
             mask[np.where(mask == ann_ids[i])] = 1
             mask = mask.astype(np.uint16)

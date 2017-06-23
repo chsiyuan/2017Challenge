@@ -133,7 +133,7 @@ def demo(sess, net, image_name, force_cpu):
     fig, ax = plt.subplots(figsize=(12, 12))
     ax.imshow(im, aspect='equal')
 
-    CONF_THRESH = 0.8
+    CONF_THRESH = 0.7
     NMS_THRESH = 0.3
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1 # because we skipped background
@@ -150,11 +150,7 @@ def demo(sess, net, image_name, force_cpu):
         print ('After nms, {:d} object proposals').format(dets.shape[0])
         im_mask = vis_detections(im, im_mask, cls, dets, mask, ax, thresh=CONF_THRESH)
 
-    im += im_mask/2;
-    im_mask_grey = cv2.cvtColor(im_mask, cv2.COLOR_RGB2GRAY)
-    im_mask_grey[np.where(im_mask_grey!=0)] = 255
-    cv2.imwrite('data/test/result/img_with_mask.png', im[:,:,(2,1,0)])
-    cv2.imwrite('data/test/result/mask.png',im_mask)
+    return im_mask
 
 def parse_args():
     """Parse input arguments."""
@@ -207,14 +203,50 @@ if __name__ == '__main__':
     for i in xrange(2):
         _, _, _= im_detect(sess, net, im)
 
+    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    rootdir = 'data/DAVIS/JPEGImages/1080p/'
+    maskdir = 'data/DAVIS/out_mask/'
+    boxdir = 'data/DAVIS/out_box'
 
-    im_names = ['data/test/images/COCO_val2014_000000003964.jpg']
+    if not os.path.isdir(maskdir):
+        os.mkdir(maskdir)
+    if not os.path.isdir(boxdir):
+        os.mkdir(boxdir)
+
+    list = os.listdir(rootdir)
+    for line in list:
+        filepath = os.path.join(rootdir,line)
+        if os.path.isdir(filepath):
+            maskpath = os.path.join(maskdir,line)
+            boxpath = os.path.join(boxdir,line)
+            if not os.path.isdir(maskpath):
+                os.mkdir(maskpath)
+            if not os.path.isdir(boxpath):
+                os.mkdir(boxpath)
+            framelist = os.listdir(filepath)
+            for filename in framelist:
+                if os.path.splitext(filename)[1] == '.jpg':
+                    im_name = os.path.splitext(filename)[0]
+                    imgpath = os.path.join(filepath,filename)
+                    print 'Demo for ' + imgpath
+                    im_mask = demo(sess, net, imgpath, force_cpu)
+                    maskout = os.path.join(maskpath,filename)
+                    boxname = im_name + '.png'
+                    boxout = os.path.join(boxpath, boxname)
+                    cv2.imwrite(maskout, im_mask)
+                    plt.savefig(boxout)
+                    pdb.set_trace()
 
 
-    for im_name in im_names:
-        print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-        print 'Demo for data/demo/{}'.format(im_name)
-        demo(sess, net, im_name, force_cpu)
+    # im_names = ['COCO_val2014_000000003964', 'COCO_val2014_000000000474']
 
-    plt.savefig('data/test/result/result_COCO_val2014_000000003964.png')
+    # for im_name in im_names:
+    #     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    #     print 'Demo for data/test/images/{}.jpg'.format(im_name)
+    #     imgpath = 'data/test/images/{}.jpg'.format(im_name)
+    #     im_mask = demo(sess, net, imgpath, force_cpu)
+    #     maskout = 'data/test/result/mask_{}.png'.format(im_name)
+    #     boxout = 'data/test/result/box_{}.png'.format(im_name)
+    #     cv2.imwrite(maskout, im_mask)
+    #     plt.savefig(boxout)
 

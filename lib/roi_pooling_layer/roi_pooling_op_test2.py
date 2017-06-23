@@ -39,7 +39,6 @@ pdb.set_trace()
 for step in xrange(10):
     y_np, loss_np, _ = sess.run([y,loss,train])
     print loss_np
-    pdb.set_trace()
 
 #with tf.device('/gpu:0'):
 #  result = module.roi_pool(data, rois, 1, 1, 1.0/1)

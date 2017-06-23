@@ -96,12 +96,10 @@ __global__ void ROIPoolForward(const int nthreads, const Dtype* bottom_data,
       {
         float randPoint[2];
         float rh = static_cast<float>((curand(&state)%1000)/1000.0);
-        //rh = 0.5;
-	randPoint[0] = rh * (hend - hstart) + hstart;
+        randPoint[0] = rh * (hend - hstart) + hstart;
         float rw = static_cast<float>((curand(&state)%1000)/1000.0);
-        //rw = 0.3;
-	randPoint[1] = rw * (wend - wstart) + wstart;
-
+        randPoint[1] = rw * (wend - wstart) + wstart;
+        
         // Notes: Calculate the interpolation for the point
         int topleft[2] = {static_cast<int>(floor(randPoint[0])), static_cast<int>(floor(randPoint[1]))};
         int tl_index = (topleft[0] * width + topleft[1]) * channels + c;
@@ -219,7 +217,7 @@ __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
           float maxidx_x = offset_argmax_data_x[(ph * pooled_width + pw) * channels + c];
           float maxidx_y = offset_argmax_data_y[(ph * pooled_width + pw) * channels + c];
           // If maxdix_x = maxidx_y = -1, it will skip this [if] branch.
-          if(abs(maxidx_x - h) < 1 && abs(maxidx_y - w) < 1){
+          if(std::abs(maxidx_x - h) < 1 && std::abs(maxidx_y - w) < 1){
               float coeff = (1 - std::abs(maxidx_x - h)) * (1 - std::abs(maxidx_y - w));
               gradient += offset_top_diff[(ph * pooled_width + pw) * channels + c] * coeff;
               // printf("h: %d, w: %d, maxidx_x: %f, maxidx_y: %f\n", h,w,maxidx_x,maxidx_y);
@@ -227,8 +225,9 @@ __global__ void ROIPoolBackward(const int nthreads, const Dtype* top_diff,
           }
         }
       }
+
+      bottom_diff[index] = gradient;
     }
-    bottom_diff[index] = gradient;
   }
 }
 

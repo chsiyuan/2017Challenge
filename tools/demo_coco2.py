@@ -127,27 +127,26 @@ def filter_mask(bbox, mask, deformed_masks, masks_filtered, idx):
 
     # Calculate overlap rate of the mask with every instance.
     is_overlap = 0
-    # area = np.sum(mask_binary)
-    if area > 0:
-    	for i in range(np.max(deformed_masks)):
-            gt_mask_ins = np.copy(deformed_masks)
-            gt_mask_ins[np.where(gt_mask_ins!=(i+1))] = 0
-            gt_mask_ins[np.where(gt_mask_ins==(i+1))] = 1
-            gt_mask_ins.astype(int)
-            overlap = float(np.sum(mask_full_size & gt_mask_ins))/float(np.sum(mask_full_size ^ gt_mask_ins))
-            if overlap >= cfg.TEST.FILTER:
-                is_overlap = 1
-                break
+    # area = np.sum(mask_binary):
+    for i in range(np.max(deformed_masks)):
+        gt_mask_ins = np.copy(deformed_masks)
+        gt_mask_ins[np.where(gt_mask_ins!=(i+1))] = 0
+        gt_mask_ins[np.where(gt_mask_ins==(i+1))] = 1
+        gt_mask_ins.astype(int)
+        overlap = float(np.sum(mask_full_size & gt_mask_ins))/float(np.sum(mask_full_size ^ gt_mask_ins))
+        if overlap >= cfg.TEST.FILTER:
+            is_overlap = 1
+            break
 
-        # If the mask matches one of the instances, keep it.
-        if is_overlap == 1:
-            masks_filtered[:,:,idx] = mask_full_size*(idx+1)
-        else:
-            tmp = np.copy(deformed_masks)
-            tmp[np.where(tmp)!=(idx+1)] = 0
-            tmp[np.where(tmp)==(idx+1)] = idx+1
-            masks_filtered[:,:,idx] = tmp
-        idx += 1
+    # If the mask matches one of the instances, keep it.
+    if is_overlap == 1:
+        masks_filtered[:,:,idx] = mask_full_size*(idx+1)
+    else:
+        tmp = np.copy(deformed_masks)
+        tmp[np.where(tmp!=idx+1)] = 0
+        tmp[np.where(tmp==idx+1)] = idx+1
+        masks_filtered[:,:,idx] = tmp
+    idx += 1
     return masks_filtered, idx
 
 def generate_mask(scores, boxes, masks, deformed_masks, force_cpu):
@@ -158,7 +157,7 @@ def generate_mask(scores, boxes, masks, deformed_masks, force_cpu):
     """
 
     ins_num = 0  # number of instances in this image
-    masks_filtered = np.zeros([deformed_masks.shape[0], deformed_mask.shape[1], np.max(deformed_mask)]).astype(int)  # filtered mask
+    masks_filtered = np.zeros([deformed_masks.shape[0], deformed_masks.shape[1], np.max(deformed_masks)]).astype(int)  # filtered mask
 
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1 # because we skipped background
@@ -171,7 +170,7 @@ def generate_mask(scores, boxes, masks, deformed_masks, force_cpu):
         keep = nms(dets, cfg.TEST.NMS, force_cpu)
         dets = dets[keep, :]
         mask_nms = masks[keep, :, :]
-        print('class no. {:d} - {:s}: after nms, {:d} object proposals').format(cls_ind, cls, dets.shape[0])
+        print('class no. {:d} - {}: after nms, {:d} object proposals').format(cls_ind, cls, dets.shape[0])
 
         # Remove masks that have class scores lower than the threshold.
         inds = np.where(dets[:, -1] >= cfg.TEST.CONF)[0]
@@ -189,8 +188,8 @@ def demo2(sess, net, image_name, deformed_mask_name, force_cpu):
     """Detect object classes in an image using pre-computed object proposals."""
 
     # Load the demo image
-    im_file = os.path.join(cfg.DATA_DIR, '../', image_name)
-    deform_file = os.path.join(cfg.DATA_DIR, '../', deformed_mask_name)
+    im_file = os.path.join(cfg.DATA_DIR, 'test/images', image_name)
+    deform_file = os.path.join(cfg.DATA_DIR, 'test/images',deformed_mask_name)
     im0 = cv2.imread(im_file)
     deformed_mask = cv2.imread(deform_file, 0)
 
@@ -210,7 +209,7 @@ def demo2(sess, net, image_name, deformed_mask_name, force_cpu):
     for i in range(3):
         output_mask[:,:,i] = filtered_mask/max_value*255
     output_mask.astype(np.uint8)
-    result_file = os.path.join(cfg.DATA_DIR, '../', image_name)
+    result_file = os.path.join(cfg.DATA_DIR, 'test/result', image_name)
     cv2.imwrite(result_file, output_mask)
 
 
@@ -218,8 +217,8 @@ def demo(sess, net, image_name, deformed_mask_name, force_cpu):
     """Detect object classes in an image using pre-computed object proposals."""
 
     # Load the demo image
-    im_file = os.path.join(cfg.DATA_DIR, '../', image_name)
-    deform_file = os.path.join(cfg.DATA_DIR, '../', deformed_mask_name)
+    im_file = os.path.join(cfg.DATA_DIR,'test/images' ,image_name)
+    deform_file = os.path.join(cfg.DATA_DIR,'test/images' ,deformed_mask_name)
     im0 = cv2.imread(im_file)
     deformed_mask = cv2.imread(deform_file, 0)
     timer = Timer()
@@ -247,7 +246,7 @@ def demo(sess, net, image_name, deformed_mask_name, force_cpu):
         keep = nms(dets, cfg.TEST.NMS, force_cpu)
         dets = dets[keep, :]
         mask = masks[keep, :, :]
-        print ('class no. {:d} - {:s}: after nms, {:d} object proposals').format(cls_ind, cls, dets.shape[0])
+        print ('class no. {:d} - {}: after nms, {:d} object proposals').format(cls_ind, cls, dets.shape[0])
         im_mask = vis_detections(im0, im_mask, cls, dets, mask, thresh=cfg.TEST.CONF)
 
     # pdb.set_trace()
@@ -308,12 +307,11 @@ if __name__ == '__main__':
     # for i in xrange(2):
     #    _, _, _= im_detect(sess, net, im)
 
-    data_dir = 'data/test/images/'
-    im_names = 'COCO_train2014_000000001319.jpg'
+    im_names = ['COCO_train2014_000000001319.jpg']
     deformed_mask_name = 'mask_gt.png'
 
     for im_name in im_names:
         print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
         print 'Demo for data/demo/{}'.format(im_name)
-        demo2(sess, net, dataa_dir+im_name, data_dir+deformed_mask_name, force_cpu)
+        demo2(sess, net, im_name, deformed_mask_name, force_cpu)
 

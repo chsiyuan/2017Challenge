@@ -104,7 +104,7 @@ def vis_detections(im, im_mask, class_name, dets, masks, thresh=0.5):
     """
     return im_mask
 
-def filter_mask(bbox, mask, deformed_masks, masks_filtered, idx):
+def filter_mask(bbox, mask, deformed_masks, masks_filtered):
     """
     Resize mask according to the bounding box and calculate overlap with every instance.
     Keep the mask that has overlap rate higher than FILTER_THRESH.
@@ -134,7 +134,9 @@ def filter_mask(bbox, mask, deformed_masks, masks_filtered, idx):
         gt_mask_ins[np.where(gt_mask_ins==(i+1))] = 1
         gt_mask_ins.astype(int)
         overlap = float(np.sum(mask_full_size & gt_mask_ins))/float(np.sum(mask_full_size ^ gt_mask_ins))
-        if overlap >= cfg.TEST.FILTER:
+        print('intersection:' + str(np.sum(mask_full_size&gt_mask_ins)))
+	print('union:' + str(np.sum(mask_full_size^gt_mask_ins)))
+	if overlap >= cfg.TEST.FILTER:
             is_overlap = 1
             break
 
@@ -155,7 +157,6 @@ def generate_mask(scores, boxes, masks, deformed_masks, force_cpu):
     Output: filtered mask(H*W) with labels of instance 1,2,3...
     """
 
-    ins_num = 0  # number of instances in this image
     masks_filtered = np.zeros([deformed_masks.shape[0], deformed_masks.shape[1], np.max(deformed_masks)]).astype(int)  # filtered mask
 
     for cls_ind, cls in enumerate(CLASSES[1:]):
@@ -180,7 +181,7 @@ def generate_mask(scores, boxes, masks, deformed_masks, force_cpu):
         # Remove masks that don't match the gt masks.
         for i in range(mask.shape[0]):
 	    #pdb.set_trace()
-            [masks_filtered, ins_num] = filter_mask(dets[i,0:4], mask[i,:, :], deformed_masks, masks_filtered, ins_num)	 
+            masks_filtered = filter_mask(dets[i,0:4], mask[i,:, :], deformed_masks, masks_filtered)	 
     return masks_filtered
 
 def demo2(sess, net, image_name, deformed_mask_name, force_cpu):
@@ -202,20 +203,22 @@ def demo2(sess, net, image_name, deformed_mask_name, force_cpu):
 
     # Process masks
     filtered_mask = generate_mask(scores, boxes, masks, deformed_mask, force_cpu)
+    pdb.set_trace()
     for i in range(filtered_mask.shape[2]):
-        if np.max(filtered_mask) == 0:
+        if np.max(filtered_mask[:,:,i]) == 0:
             tmp = np.copy(deformed_mask)
-            tmp(np.where(tmp == i+1)) = i+1
-            tmp(np.where(tmp != i+1)) = 0
-            filter_mask[:,:,i] = tmp
+            tmp[np.where(tmp == i+1)] = i+1
+            tmp[np.where(tmp != i+1)] = 0
+            filtered_mask[:,:,i] = tmp
     filtered_mask = np.amax(filtered_mask, axis=2)
-    output_mask = np.zeros([filtered_mask.shape[0], filtered_mask.shape[1], 3])
-    max_value = np.max(filtered_mask)
-    for i in range(3):
-        output_mask[:,:,i] = filtered_mask/max_value*255
-    output_mask.astype(np.uint8)
+    #output_mask = np.zeros([filtered_mask.shape[0], filtered_mask.shape[1], 3])
+    max_value = np.max(filtered_mask).astype(float)
+    filtered_mask = (filtered_mask/max_value*255).astype(np.uint8)
+    #for i in range(3):
+    #    output_mask[:,:,i] = filtered_mask/max_value*255
+    #output_mask.astype(np.uint8)
     result_file = os.path.join(cfg.DATA_DIR, 'test/result', image_name)
-    cv2.imwrite(result_file, output_mask)
+    cv2.imwrite(result_file, filtered_mask)
 
 
 def demo(sess, net, image_name, deformed_mask_name, force_cpu):

@@ -140,14 +140,13 @@ def filter_mask(bbox, mask, deformed_masks, masks_filtered, idx):
 
     # If the mask matches one of the instances, keep it.
     if is_overlap == 1:
-        masks_filtered[:,:,idx] = mask_full_size*(idx+1)
-    else:
-        tmp = np.copy(deformed_masks)
-        tmp[np.where(tmp!=idx+1)] = 0
-        tmp[np.where(tmp==idx+1)] = idx+1
-        masks_filtered[:,:,idx] = tmp
-    idx += 1
-    return masks_filtered, idx
+        if np.max(masks_filtered[:,:,i]) != 0:
+            overlap0 = float(np.sum(masks_filtered[:,:,i] & gt_mask_ins))/float(np.sum(masks_filtered[:,:,i] ^ gt_mask_ins))
+            if overlap0 < overlap:
+                masks_filtered[:,:,i] = mask_full_size*(i+1)
+        else:
+            masks_filtered[:,:,i] = mask_full_size*(i+1)
+    return masks_filtered
 
 def generate_mask(scores, boxes, masks, deformed_masks, force_cpu):
     """
@@ -203,6 +202,12 @@ def demo2(sess, net, image_name, deformed_mask_name, force_cpu):
 
     # Process masks
     filtered_mask = generate_mask(scores, boxes, masks, deformed_mask, force_cpu)
+    for i in range(filtered_mask.shape[2]):
+        if np.max(filtered_mask) == 0:
+            tmp = np.copy(deformed_mask)
+            tmp(np.where(tmp == i+1)) = i+1
+            tmp(np.where(tmp != i+1)) = 0
+            filter_mask[:,:,i] = tmp
     filtered_mask = np.amax(filtered_mask, axis=2)
     output_mask = np.zeros([filtered_mask.shape[0], filtered_mask.shape[1], 3])
     max_value = np.max(filtered_mask)

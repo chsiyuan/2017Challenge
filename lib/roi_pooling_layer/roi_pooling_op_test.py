@@ -48,9 +48,9 @@ sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 sess.run(init)
 pdb.set_trace()
 for step in xrange(10):
-    y_val, argmax_x_val, argmax_y_val, loss_val, _ = sess.run([y, argmax_x, argmax_y, loss, train])
-    #pdb.set_trace()
-    print loss_val
+    y_np, loss_np, _ = sess.run([y,loss,train])
+    pdb.set_trace()
+
 #with tf.device('/gpu:0'):
 #  result = module.roi_pool(data, rois, 1, 1, 1.0/1)
 #  print result.eval()

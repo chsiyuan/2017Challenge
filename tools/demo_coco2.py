@@ -52,7 +52,6 @@ def rand_hsl():
 
 def vis_detections(im, im_mask, class_name, dets, masks, thresh=0.5):
     """Draw detected bounding boxes."""
-    #pdb.set_trace()
     inds = np.where(dets[:, -1] >= thresh)[0]
     if len(inds) == 0:
         return im_mask
@@ -85,7 +84,6 @@ def vis_detections(im, im_mask, class_name, dets, masks, thresh=0.5):
         mask_resize = cv2.resize(mask, None, fx=fx, fy=fy)
         mask_resize += 0 # <0.1 -> 0; >0.1 -> 1
         mask_resize = np.around(mask_resize).astype(im.dtype)
-	print("mask_binary area:"+str(np.sum(mask_resize)))
         rand_color = rand_hsl()
         im_mask_temp = np.zeros(im.shape).astype(im.dtype)
         #pdb.set_trace()
@@ -124,28 +122,32 @@ def filter_mask(bbox, mask, deformed_masks, masks_filtered, idx):
     fy = height/mask_h
     mask_resize = cv2.resize(mask, None, fx=fx, fy=fy)
     mask_binary = np.around(mask_resize).astype(int)
-    mask_full_size = np.zeros(masks_filtered.shape).astype(int)
+    mask_full_size = np.zeros(deformed_masks.shape).astype(int)
     mask_full_size[bbox_round[1]:bbox_round[3]+1, bbox_round[0]:bbox_round[2]+1] = mask_binary
 
     # Calculate overlap rate of the mask with every instance.
     is_overlap = 0
-    area = np.sum(mask_binary)
-    print("mask area: "+str(area))
+    # area = np.sum(mask_binary)
     if area > 0:
     	for i in range(np.max(deformed_masks)):
             gt_mask_ins = np.copy(deformed_masks)
-            gt_mask_ins[np.where(gt_mask_ins!=(i+1))] = 0;
-            gt_mask_ins[np.where(gt_mask_ins==(i+1))] = 1;
+            gt_mask_ins[np.where(gt_mask_ins!=(i+1))] = 0
+            gt_mask_ins[np.where(gt_mask_ins==(i+1))] = 1
             gt_mask_ins.astype(int)
-            overlap = float(np.sum(mask_full_size & gt_mask_ins))/float(area)
+            overlap = float(np.sum(mask_full_size & gt_mask_ins))/float(np.sum(mask_full_size ^ gt_mask_ins))
             if overlap >= cfg.TEST.FILTER:
-                is_overlap += 1
+                is_overlap = 1
+                break
 
         # If the mask matches one of the instances, keep it.
         if is_overlap == 1:
-            idx += 1
-            masks_filtered[bbox_round[1]:bbox_round[3]+1, bbox_round[0]:bbox_round[2]+1] = (mask_binary*idx).astype(int)
-
+            masks_filtered[:,:,idx] = mask_full_size*(idx+1)
+        else:
+            tmp = np.copy(deformed_masks)
+            tmp[np.where(tmp)!=(idx+1)] = 0
+            tmp[np.where(tmp)==(idx+1)] = idx+1
+            masks_filtered[:,:,idx] = tmp
+        idx += 1
     return masks_filtered, idx
 
 def generate_mask(scores, boxes, masks, deformed_masks, force_cpu):
@@ -156,7 +158,7 @@ def generate_mask(scores, boxes, masks, deformed_masks, force_cpu):
     """
 
     ins_num = 0  # number of instances in this image
-    masks_filtered = np.zeros(deformed_masks.shape).astype(int)  # filtered mask
+    masks_filtered = np.zeros([deformed_masks.shape[0], deformed_mask.shape[1], np.max(deformed_mask)]).astype(int)  # filtered mask
 
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1 # because we skipped background
@@ -164,20 +166,21 @@ def generate_mask(scores, boxes, masks, deformed_masks, force_cpu):
         cls_scores = scores[:, cls_ind]
         dets = np.hstack((cls_boxes,
                           cls_scores[:, np.newaxis])).astype(np.float32)
-	print("cls_ind: "+str(cls_ind))
+
         # Do NMS
         keep = nms(dets, cfg.TEST.NMS, force_cpu)
         dets = dets[keep, :]
         mask_nms = masks[keep, :, :]
+        print('class no. {:d} - {:s}: after nms, {:d} object proposals').format(cls_ind, cls, dets.shape[0])
 
         # Remove masks that have class scores lower than the threshold.
         inds = np.where(dets[:, -1] >= cfg.TEST.CONF)[0]
         dets = dets[inds, :]
         mask = mask_nms[inds, :, :]
+        print ('{:d} object proposals are higher than threshold {:.2f}').format(dets.shape[0], cfg.TEST.CONF)
 
         # Remove masks that don't match the gt masks.
         for i in range(mask.shape[0]):
-	    print "i in mask: " + str(i+1)
 	    #pdb.set_trace()
             [masks_filtered, ins_num] = filter_mask(dets[i,0:4], mask[i,:, :], deformed_masks, masks_filtered, ins_num)	 
     return masks_filtered
@@ -190,23 +193,25 @@ def demo2(sess, net, image_name, deformed_mask_name, force_cpu):
     deform_file = os.path.join(cfg.DATA_DIR, '../', deformed_mask_name)
     im0 = cv2.imread(im_file)
     deformed_mask = cv2.imread(deform_file, 0)
-    # im = np.zeros((im0.shape[0], im0.shape[1], 4))
-    # im[:,:,0:3] = im0
-    # im[:,:,3] = deformed_mask
-    # Detect all object classes and regress object bounds
+
+    # Detect objects
     timer = Timer()
     timer.tic()
     scores, boxes, masks = im_detect(sess, net, im0)
     timer.toc()
     print ('Detection took {:.3f}s for '
            '{:d} object proposals').format(timer.total_time, boxes.shape[0])
+
+    # Process masks
     filtered_mask = generate_mask(scores, boxes, masks, deformed_mask, force_cpu)
+    filtered_mask = np.amax(filtered_mask, axis=2)
     output_mask = np.zeros([filtered_mask.shape[0], filtered_mask.shape[1], 3])
     max_value = np.max(filtered_mask)
     for i in range(3):
-        output_mask[:,:,i]=filtered_mask/max_value*255
+        output_mask[:,:,i] = filtered_mask/max_value*255
     output_mask.astype(np.uint8)
-    cv2.imwrite('/z/home/chsiyuan/Documents/2017Challenge/data/test/result/result_000000005756.png',output_mask)
+    result_file = os.path.join(cfg.DATA_DIR, '../', image_name)
+    cv2.imwrite(result_file, output_mask)
 
 
 def demo(sess, net, image_name, deformed_mask_name, force_cpu):
@@ -215,15 +220,8 @@ def demo(sess, net, image_name, deformed_mask_name, force_cpu):
     # Load the demo image
     im_file = os.path.join(cfg.DATA_DIR, '../', image_name)
     deform_file = os.path.join(cfg.DATA_DIR, '../', deformed_mask_name)
-    # pdb.set_trace()
-    #im_file = os.path.join('/home/corgi/Lab/label/pos_frame/ACCV/training/000001/',image_name)
     im0 = cv2.imread(im_file)
     deformed_mask = cv2.imread(deform_file, 0)
-    # im = np.zeros((im0.shape[0], im0.shape[1], 4))
-    # im[:,:,0:3] = im0
-    # im[:,:,3] = deformed_mask
-    #pdb.set_trace()
-    # Detect all object classes and regress object bounds
     timer = Timer()
     timer.tic()
     scores, boxes, masks = im_detect(sess, net, im0)
@@ -232,10 +230,7 @@ def demo(sess, net, image_name, deformed_mask_name, force_cpu):
            '{:d} object proposals').format(timer.total_time, boxes.shape[0])
 
     # Visualize detections for each class
-    # pdb.set_trace()
-    # im = im[:, :, 0:3]
     im0 = im0[:, :, (2, 1, 0)]
-    # pdb.set_trace()
 
     # change in mask rcnn
     im_mask = np.zeros(im0.shape).astype(im0.dtype)
@@ -243,24 +238,17 @@ def demo(sess, net, image_name, deformed_mask_name, force_cpu):
     #fig, ax = plt.subplots(figsize=(12, 12))
     #ax.imshow(im, aspect='equal')
 
-    CONF_THRESH = 0.5
-    NMS_THRESH = 0.3
     for cls_ind, cls in enumerate(CLASSES[1:]):
-    # for cls_ind, cls in enumerate(CLASSES):
-        # cls_ind = 1 # because we skipped background
         cls_ind += 1 # because we skipped background
         cls_boxes = boxes[:, 4*cls_ind:4*(cls_ind + 1)]
         cls_scores = scores[:, cls_ind]
         dets = np.hstack((cls_boxes,
                           cls_scores[:, np.newaxis])).astype(np.float32)
-        keep = nms(dets, NMS_THRESH, force_cpu)
-        # pdb.set_trace()
+        keep = nms(dets, cfg.TEST.NMS, force_cpu)
         dets = dets[keep, :]
-        # change in mask rcnn
         mask = masks[keep, :, :]
-        #pdb.set_trace()
-        print ('After nms, {:d} object proposals').format(dets.shape[0])
-        im_mask = vis_detections(im0, im_mask, cls, dets, mask, thresh=CONF_THRESH)
+        print ('class no. {:d} - {:s}: after nms, {:d} object proposals').format(cls_ind, cls, dets.shape[0])
+        im_mask = vis_detections(im0, im_mask, cls, dets, mask, thresh=cfg.TEST.CONF)
 
     # pdb.set_trace()
     # im += im_mask/2;
@@ -320,12 +308,12 @@ if __name__ == '__main__':
     # for i in xrange(2):
     #    _, _, _= im_detect(sess, net, im)
 
-
-    im_names = ['data/test/images/COCO_train2014_000000001319.jpg']
-    deformed_mask_name = 'data/test/images/mask_gt.png'
+    data_dir = 'data/test/images/'
+    im_names = 'COCO_train2014_000000001319.jpg'
+    deformed_mask_name = 'mask_gt.png'
 
     for im_name in im_names:
         print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
         print 'Demo for data/demo/{}'.format(im_name)
-        demo2(sess, net, im_name, deformed_mask_name, force_cpu)
+        demo2(sess, net, dataa_dir+im_name, data_dir+deformed_mask_name, force_cpu)
 

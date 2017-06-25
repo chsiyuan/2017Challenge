@@ -196,8 +196,7 @@ class RoiPoolOp : public OpKernel {
             randPoint[0] = rh * (hend - hstart) + hstart;
             float rw = (rand() % 1000) / 1000.0;
             randPoint[1] = rw * (wend - wstart) + wstart;
-            
-            
+
             // Notes: Calculate the interpolation for the point
             int topleft[2] = {static_cast<int>(floor(randPoint[0])), static_cast<int>(floor(randPoint[1]))};
             int tl_index = (topleft[0] * data_width + topleft[1]) * num_channels + c;

@@ -235,7 +235,7 @@ if __name__ == '__main__':
                     boxout = os.path.join(boxpath, boxname)
                     cv2.imwrite(maskout, im_mask)
                     plt.savefig(boxout)
-                    pdb.set_trace()
+                    #pdb.set_trace()
 
 
     # im_names = ['COCO_val2014_000000003964', 'COCO_val2014_000000000474']

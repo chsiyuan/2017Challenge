@@ -14,6 +14,7 @@ import datasets.imagenet3d
 import datasets.kitti
 import datasets.kitti_tracking
 import datasets.coco
+import datasets.davis
 import numpy as np
 
 def _selective_search_IJCV_top_k(split, year, top_k):
@@ -75,6 +76,12 @@ for split in ['71', '370']:
     print name
     __sets[name] = (lambda split=split:
             datasets.nthu(split))
+
+# DAVIS dataset
+for year in ['2017']:
+    for split in ['train', 'test-dev', 'test-challenge']:
+        name = 'davis_{}_{}'.format(year, split)
+        __sets[name] = (lambda split=split, year=year: datasets.davis(split, year))
 
 
 def get_imdb(name):

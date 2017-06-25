@@ -38,6 +38,15 @@ case $DATASET in
     PT_DIR="coco"
     ITERS=50000
     ;;
+  davis)
+    # This is a very long and slow training schedule
+    # You can probably use fewer iterations and reduce the
+    # time to the LR drop (set in the solver to 350,000 iterations).
+    TRAIN_IMDB="davis_2017_train"
+    TEST_IMDB="davis_2017_test-dev"
+    PT_DIR="davis"
+    ITERS=50000
+    ;;
   *)
     echo "No dataset given"
     exit

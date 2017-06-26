@@ -21,6 +21,10 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from pycocotools import mask as COCOmask
 
+import pdb
+
+DEBUG = True
+
 def _filter_crowd_proposals(roidb, crowd_thresh):
     """
     Finds proposals that are inside crowd regions and marks them with
@@ -212,6 +216,8 @@ class davis(imdb):
                                          for cls in self._classes[1:]])
 
         for ix, obj in enumerate(objs):
+            if DEBUG:
+                pdb.set_trace()
             cls = davis_cat_id_to_class_ind[obj['category_id']]
             boxes[ix, :] = obj['clean_bbox']
             gt_classes[ix] = cls

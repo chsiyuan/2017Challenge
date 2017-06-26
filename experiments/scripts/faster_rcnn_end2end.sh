@@ -45,7 +45,7 @@ case $DATASET in
     TRAIN_IMDB="davis_2017_train"
     TEST_IMDB="davis_2017_test-dev"
     PT_DIR="davis"
-    ITERS=50000
+    ITERS=5
     ;;
   *)
     echo "No dataset given"

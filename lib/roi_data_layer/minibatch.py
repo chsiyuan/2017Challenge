@@ -15,6 +15,9 @@ from utils.blob import prep_im_for_blob, im_list_to_blob
 # change in mask rcnn
 from utils.blob import gtmask_list_to_blob
 import mat4py.mat4py
+import pdb
+
+DEBUG = True
 
 def get_minibatch(roidb, num_classes):
     """Given a roidb, construct a minibatch sampled from it."""
@@ -53,7 +56,7 @@ def get_minibatch(roidb, num_classes):
             mask[np.where(mask != ann_ids[i])] = 0
             mask[np.where(mask == ann_ids[i])] = 1
             mask = mask.astype(np.uint16)
-	    mask = cv2.resize(mask, None, None, fx=im_scales[0], fy=im_scales[0],
+            mask = cv2.resize(mask, None, None, fx=im_scales[0], fy=im_scales[0],
                               interpolation=cv2.INTER_LINEAR)
             gt_masks[i,:,:] = mask
         blobs['gt_masks'] = gt_masks
@@ -62,6 +65,8 @@ def get_minibatch(roidb, num_classes):
         blobs['im_info'] = np.array(
             [[im_blob.shape[1], im_blob.shape[2], im_scales[0]]],
             dtype=np.float32)
+        if DEBUG:
+            pdb.set_trace()
     else: # not using RPN
         # Now, build the region of interest and label blobs
         rois_blob = np.zeros((0, 5), dtype=np.float32)
@@ -164,7 +169,12 @@ def _get_image_blob(roidb, scale_inds):
         im_scales.append(im_scale)
         processed_ims.append(im)
         # change in mask rcnn, read in gt mask
-        gtmask = np.asarray(mat4py.loadmat(roidb[i]['gt_mask'])['mask_gt'])
+        # gtmask = np.asarray(mat4py.loadmat(roidb[i]['gt_mask'])['mask_gt'])
+        
+        # if DEBUG:
+        #     pdb.set_trace()
+        gtmask = np.asarray(mat4py.loadmat(roidb[i]['gt_mask'])['newMask'])
+
         unprocessed_gtmasks.append(gtmask)
 
     # Create a blob to hold the input images

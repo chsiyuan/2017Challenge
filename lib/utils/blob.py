@@ -9,6 +9,8 @@
 
 import numpy as np
 import cv2
+import pdb
+DEBUG = False
 
 def im_list_to_blob(ims):
     """Convert a list of images into a network input.
@@ -31,6 +33,8 @@ def gtmask_list_to_blob(gtmasks):
 
     Assumes images are already prepared (means subtracted, BGR order, ...).
     """
+    if DEBUG:
+        pdb.set_trace()
     max_shape = np.array([gtmask.shape for gtmask in gtmasks]).max(axis=0)
     num_images = len(gtmasks)
     blob = np.zeros((num_images, max_shape[0], max_shape[1]),

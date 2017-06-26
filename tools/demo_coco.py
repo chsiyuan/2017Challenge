@@ -150,10 +150,7 @@ def demo(sess, net, image_name, force_cpu):
         print ('After nms, {:d} object proposals').format(dets.shape[0])
         im_mask = vis_detections(im, im_mask, cls, dets, mask, ax, thresh=CONF_THRESH)
 
-    im += im_mask/2;
-    im_mask_grey = cv2.cvtColor(im_mask, cv2.COLOR_RGB2GRAY)
-    im_mask_grey[np.where(im_mask_grey!=0)] = 255
-    cv2.imwrite('data/test/result/img_with_mask.png', im[:,:,(2,1,0)])
+    
     cv2.imwrite('data/test/result/mask.png',im_mask)
 
 def parse_args():
@@ -208,7 +205,7 @@ if __name__ == '__main__':
         _, _, _= im_detect(sess, net, im)
 
 
-    im_names = ['data/test/images/COCO_val2014_000000003964.jpg']
+    im_names = ['data/test/images/COCO_val2014_000000000074.jpg']
 
 
     for im_name in im_names:
@@ -216,5 +213,5 @@ if __name__ == '__main__':
         print 'Demo for data/demo/{}'.format(im_name)
         demo(sess, net, im_name, force_cpu)
 
-    plt.savefig('data/test/result/result_COCO_val2014_000000003964.png')
+    plt.savefig('data/test/result/result_COCO_val2014_000000000074.png')
 

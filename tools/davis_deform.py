@@ -17,7 +17,7 @@ import pdb
 from deform import deform
 from PIL import Image
 
-DEBUG = True
+DEBUG = False
 
 
 # CLASSES = ('__background__',
@@ -139,8 +139,8 @@ def filter_mask(bbox, mask, deformed_masks, masks_filtered):
         deformed_masks.astype(int)
         gt_mask_ins = deformed_masks[:,:,i]
         overlap = float(np.sum(np.minimum(mask_full_size, gt_mask_ins)))/float(np.sum(np.maximum(mask_full_size , gt_mask_ins)))
-        if DEBUG:
-            pdb.set_trace()
+        # if DEBUG:
+        #     pdb.set_trace()
         print('intersection:' + str(np.sum(mask_full_size&gt_mask_ins)))
         print('union:' + str(np.sum(mask_full_size^gt_mask_ins)))
         if overlap >= cfg.TEST.FILTER:
@@ -218,7 +218,7 @@ def demo2(sess, net, image_name, deformed_mask, ids, force_cpu):
             tmp = np.copy(deformed_mask[:,:,i])
             filtered_mask[:,:,i] = tmp
             filtered_mask_tmp[:,:,i] = np.copy(tmp)
-        filter_mask_tmp[:,:,i] = filter_mask_tmp[:,:,i] *ids[i]
+        filtered_mask_tmp[:,:,i] = filtered_mask_tmp[:,:,i] *ids[i]
 
     filtered_mask_merge = np.amax(filtered_mask_tmp, axis=2)
     #output_mask = np.zeros([filtered_mask.shape[0], filtered_mask.shape[1], 3])

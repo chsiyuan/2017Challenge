@@ -172,7 +172,7 @@ __C.TEST.MAX_SIZE = 1000
 # IoU >= this threshold)
 __C.TEST.NMS = 0.3
 __C.TEST.CONF = 0.5
-__C.TEST.FILTER = 0.8
+__C.TEST.FILTER = 0.5
 
 # Experimental: treat the (K+1) units in the cls_score layer as linear
 # predictors (trained, eg, with one-vs-rest SVMs).

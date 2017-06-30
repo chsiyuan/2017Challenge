@@ -210,9 +210,9 @@ def demo2(sess, net, image_name, deformed_mask, ids, force_cpu):
 
     # Process masks
     filtered_mask = generate_mask(scores, boxes, masks, deformed_mask, force_cpu)
-    filtered_mask_tmp =np.zeros(filtered_mask.shape)
+    #filtered_mask_tmp =np.zeros(filtered_mask.shape)
     filtered_mask_tmp = np.copy(filtered_mask)
-    pdb.set_trace()
+    # pdb.set_trace()
     for i in range(filtered_mask.shape[2]):
         if np.max(filtered_mask[:,:,i]) == 0:
             tmp = np.copy(deformed_mask[:,:,i])

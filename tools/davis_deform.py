@@ -134,27 +134,55 @@ def filter_mask(bbox, mask, deformed_masks, masks_filtered):
 
     # Calculate overlap rate of the mask with every instance.
     is_overlap = 0
+    assign_id = -1
     # area = np.sum(mask_binary):
     for i in range(deformed_masks.shape[2]):
         deformed_masks.astype(int)
         gt_mask_ins = deformed_masks[:,:,i]
+        if np.sum(np.maximum(mask_full_size , gt_mask_ins)) == 0:
+            continue
         overlap = float(np.sum(np.minimum(mask_full_size, gt_mask_ins)))/float(np.sum(np.maximum(mask_full_size , gt_mask_ins)))
         # if DEBUG:
         #     pdb.set_trace()
-        print('intersection:' + str(np.sum(mask_full_size&gt_mask_ins)))
-        print('union:' + str(np.sum(mask_full_size^gt_mask_ins)))
+        print('intersection:' + str(np.sum(np.minimum(mask_full_size, gt_mask_ins))))
+        print('union:' + str(np.sum(np.maximum(mask_full_size , gt_mask_ins))))
         if overlap >= cfg.TEST.FILTER:
-            is_overlap = 1
-            break
+            if DEBUG:
+                pdb.set_trace()
+            if assign_id >=0:
+                overlap0 = float(np.sum(np.minimum(masks_filtered[:,:,assign_id], deformed_masks[:,:,assign_id])))/float(np.sum(np.maximum(masks_filtered[:,:,assign_id],deformed_masks[:,:,assign_id])))
+                if overlap0 > overlap:
+                    continue
+                else:
+                    holder = assign_id
+                    assign_id = i
+            else:
+                holder = -1
+                assign_id = i
 
+            if assign_id == i:
+                if np.amax(masks_filtered[:,:,i]) != 0:
+                    overlap0 = float(np.sum(np.minimum(masks_filtered[:,:,i], gt_mask_ins)))/float(np.sum(np.maximum(masks_filtered[:,:,i],gt_mask_ins)))
+                    if overlap0 < overlap:
+                        masks_filtered[:,:,i] = mask_full_size
+                        if holder >=0:
+                            masks_filtered[:,:,holder] = np.zeros(gt_mask_ins.shape)
+                else:
+                    masks_filtered[:,:,i] = mask_full_size
+                    if holder >=0:
+                        masks_filtered[:,:,holder] = np.zeros(gt_mask_ins.shape)
+
+
+
+    
     # If the mask matches one of the instances, keep it.
-    if is_overlap == 1:
-        if np.max(masks_filtered[:,:,i]) != 0:
-            overlap0 = float(np.sum(np.minimum(masks_filtered[:,:,i], gt_mask_ins)))/float(np.sum(np.maximum(masks_filtered[:,:,i],gt_mask_ins)))
-            if overlap0 < overlap:
-                masks_filtered[:,:,i] = mask_full_size
-        else:
-            masks_filtered[:,:,i] = mask_full_size
+    # if is_overlap == 1:
+    #     if np.amax(masks_filtered[:,:,i]) != 0:
+    #         overlap0 = float(np.sum(np.minimum(masks_filtered[:,:,i], gt_mask_ins)))/float(np.sum(np.maximum(masks_filtered[:,:,i],gt_mask_ins)))
+    #         if overlap0 < overlap:
+    #             masks_filtered[:,:,i] = mask_full_size
+    #     else:
+    #         masks_filtered[:,:,i] = mask_full_size
     return masks_filtered
 
 def generate_mask(scores, boxes, masks, deformed_masks, force_cpu):
@@ -214,7 +242,7 @@ def demo2(sess, net, image_name, deformed_mask, ids, force_cpu):
     filtered_mask_tmp = np.copy(filtered_mask)
     # pdb.set_trace()
     for i in range(filtered_mask.shape[2]):
-        if np.max(filtered_mask[:,:,i]) == 0:
+        if np.amax(filtered_mask[:,:,i]) == 0:
             tmp = np.copy(deformed_mask[:,:,i])
             filtered_mask[:,:,i] = tmp
             filtered_mask_tmp[:,:,i] = np.copy(tmp)
@@ -223,11 +251,12 @@ def demo2(sess, net, image_name, deformed_mask, ids, force_cpu):
     filtered_mask_merge = np.amax(filtered_mask_tmp, axis=2)
     #output_mask = np.zeros([filtered_mask.shape[0], filtered_mask.shape[1], 3])
     max_value = np.max(filtered_mask_merge).astype(float)
-    filtered_mask_merge = (filtered_mask_merge/max_value*255).astype(np.uint8)
+    filtered_mask_merge_ob = np.copy(filtered_mask_merge)
+    filtered_mask_merge_ob = (filtered_mask_merge_ob/max_value*255).astype(np.uint8)
     #for i in range(3):
     #    output_mask[:,:,i] = filtered_mask/max_value*255
     #output_mask.astype(np.uint8)
-    return filtered_mask_merge, filtered_mask
+    return filtered_mask_merge, filtered_mask_merge_ob,filtered_mask
 
 
 def demo(sess, net, image_name, force_cpu):
@@ -323,17 +352,18 @@ if __name__ == '__main__':
     print '\n\nLoaded network {:s}'.format(args.model)
 
     # Warmup on a dummy image
-    im = 128 * np.ones((300, 300, 3), dtype=np.uint8)
-    for i in xrange(2):
-        _, _, _= im_detect(sess, net, im)
+    # im = 128 * np.ones((300, 300, 3), dtype=np.uint8)
+    # for i in xrange(2):
+    #     _, _, _= im_detect(sess, net, im)
 
     # if DEBUG:
     #     pdb.set_trace()
 
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    rootdir = 'data/DAVIS_test-challenge-480/JPEGImages/480p/'
-    anndir = 'data/DAVIS_test-challenge-480/Annotations/480p/'
-    maskdir = 'data/DAVIS_test-challenge-480/out_mask/'
+    rootdir = 'data/DAVIS_test-dev-480/JPEGImages/480p/'
+    anndir = 'data/DAVIS_test-dev-480/Annotations/480p/'
+    maskdir = 'data/DAVIS_test-dev-480/out_mask/'
+    maskdir_ob = 'data/DAVIS_test-dev-480/out_mask_ob/'
     #boxdir = 'data/DAVIS/out_box'
 
     if not os.path.isdir(maskdir):
@@ -344,7 +374,7 @@ if __name__ == '__main__':
     list = os.listdir(rootdir)
 
     if DEBUG:
-        list = ['bike-trial']
+        list = ['tennis-vest']
 
     for line in list:
         filepath = os.path.join(rootdir,line)
@@ -352,12 +382,16 @@ if __name__ == '__main__':
 
         if os.path.isdir(filepath):
             maskpath = os.path.join(maskdir,line)
+            maskpath_ob = os.path.join(maskdir_ob,line)
             #boxpath = os.path.join(boxdir,line)
             # read in the mask for the first frame
             annpath = os.path.join(anndir,line,'00000.png')
 
             if not os.path.isdir(maskpath):
                 os.mkdir(maskpath)
+
+            if not os.path.isdir(maskpath_ob):
+                os.mkdir(maskpath_ob)
 
             annotation = np.atleast_3d(Image.open(annpath))[...,0]
             maskout = os.path.join(maskpath,'00000.jpg')
@@ -400,13 +434,16 @@ if __name__ == '__main__':
                     print 'Demo for ' + imgpath
                     # deform_ann is a list 
                     deform_ann = deform(mask_pick, ids)
+                    #deform_ann = np.copy(mask_pick)
                     # if DEBUG:
                     #     pdb.set_trace()
-                    im_mask_merge, mask_pick = demo2(sess, net, imgpath, deform_ann, ids, force_cpu)
-                    maskout = os.path.join(maskpath,filename)
-                    #boxname = im_name + '.png'
-                    #boxout = os.path.join(boxpath, boxname)
+                    im_mask_merge,im_mask_merge_ob, mask_pick = demo2(sess, net, imgpath, deform_ann, ids, force_cpu)
+                    # maskout = os.path.join(maskpath,filename)
+                    maskname = im_name + '.png'
+                    maskout = os.path.join(maskpath, maskname)
+                    maskout_ob = os.path.join(maskpath_ob, maskname)
                     cv2.imwrite(maskout, im_mask_merge)
+                    cv2.imwrite(maskout_ob, im_mask_merge_ob)
                     # plt.savefig(boxout)
                     #pdb.set_trace()
 

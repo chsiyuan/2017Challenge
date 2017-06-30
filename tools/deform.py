@@ -64,7 +64,7 @@ def deform_instance(img):
     #cv2.imwrite('after_thin.jpg', img*80)
 
     #dilate
-    kernel = np.ones((int(0.01*cols),int(0.01*rows)),np.uint8)
+    kernel = np.ones((int(0.03*cols),int(0.03*rows)),np.uint8)
     img = cv2.dilate(img,kernel,iterations = 1)
     img = cv2.resize(img, (cols, rows)) 
     img.astype(int)

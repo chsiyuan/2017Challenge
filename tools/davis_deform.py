@@ -368,6 +368,8 @@ if __name__ == '__main__':
 
     if not os.path.isdir(maskdir):
         os.mkdir(maskdir)
+    if not os.path.isdir(maskdir_ob):
+        os.mkdir(maskdir_ob)
     # if not os.path.isdir(boxdir):
     #     os.mkdir(boxdir)
 

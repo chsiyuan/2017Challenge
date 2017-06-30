@@ -14,8 +14,10 @@ from networks.factory import get_network
 import random
 import colorsys
 import pdb
-import deform
+from deform import deform
 from PIL import Image
+
+DEBUG = True
 
 
 # CLASSES = ('__background__',
@@ -322,50 +324,68 @@ if __name__ == '__main__':
     for i in xrange(2):
         _, _, _= im_detect(sess, net, im)
 
+    # if DEBUG:
+    #     pdb.set_trace()
+
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    rootdir = 'data/DAVIS/JPEGImages/1080p/'
-    anndir = 'data/DAVIS/Annotations/1080p/'
-    maskdir = 'data/DAVIS/out_mask/'
+    rootdir = 'data/DAVIS_test-dev-480/JPEGImages/480p/'
+    anndir = 'data/DAVIS_test-dev-480/Annotations/480p/'
+    maskdir = 'data/DAVIS_test-dev-480/out_mask/'
     #boxdir = 'data/DAVIS/out_box'
 
     if not os.path.isdir(maskdir):
         os.mkdir(maskdir)
-    if not os.path.isdir(boxdir):
-        os.mkdir(boxdir)
+    # if not os.path.isdir(boxdir):
+    #     os.mkdir(boxdir)
 
     list = os.listdir(rootdir)
+
+    if DEBUG:
+        list = ['tennis-vest']
+
     for line in list:
         filepath = os.path.join(rootdir,line)
         if os.path.isdir(filepath):
             maskpath = os.path.join(maskdir,line)
             #boxpath = os.path.join(boxdir,line)
             # read in the mask for the first frame
-            annpath = os.path.join(anndir,line,'00000.jpg')
+            annpath = os.path.join(anndir,line,'00000.png')
+
+            if not os.path.isdir(maskpath):
+                os.mkdir(maskpath)
+
             annotation = np.atleast_3d(Image.open(annpath))[...,0]
+            maskout = os.path.join(maskpath,'00000.jpg')
+            cv2.imwrite(maskout, annotation)
             ids = sorted(np.unique(annotation))
             # Remove unknown-label
             ids = ids[:-1] if ids[-1] == 255 else ids
             # Handle no-background case
             ids = ids if ids[0] else ids[1:]
-            mask_pick= np.zeros([annotation.shape[0], annotation.shape[1], ids.shape[0]]).astype(int) 
+            mask_pick= np.zeros([annotation.shape[0], annotation.shape[1], len(ids)]).astype(int) 
             for i in ids:
                 anno_single = np.copy(annotation)
                 #pdb.set_trace()
                 anno_single[np.where(annotation != i)] = 0
                 anno_single[np.where(annotation == i)] = 1
-                mask_pick[:,:,i] = anno_single
-            if not os.path.isdir(maskpath):
-                os.mkdir(maskpath)
-            if not os.path.isdir(boxpath):
-                os.mkdir(boxpath)
+                mask_pick[:,:,i-1] = anno_single
+
+            # if DEBUG:
+            #     pdb.set_trace()
+
+            
+            # if not os.path.isdir(boxpath):
+            #     os.mkdir(boxpath)
             framelist = os.listdir(filepath)
             for filename in framelist:
-                if os.path.splitext(filename)[1] == '.jpg':
+                if os.path.splitext(filename)[1] == '.jpg' and os.path.splitext(filename)[0] != '00000':
                     im_name = os.path.splitext(filename)[0]
                     imgpath = os.path.join(filepath,filename)
                     print 'Demo for ' + imgpath
                     # deform_ann is a list 
                     deform_ann = deform(mask_pick, ids)
+                    if DEBUG:
+                        pbs.set_trace()
                     im_mask_merge, mask_pick = demo2(sess, net, imgpath, deform_ann, ids, force_cpu)
                     maskout = os.path.join(maskpath,filename)
                     #boxname = im_name + '.png'

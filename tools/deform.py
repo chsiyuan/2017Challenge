@@ -8,7 +8,7 @@ from PIL import Image
 # pd = ps;
 # pd = [0.2*width*(rand(5,1)-0.5),0.2*height*(rand(5,1)-0.5)]+ps;
 # [mask_tps m_mask]=rbfwarp2d(mask_t,ps,pd,'thin');
-
+DEBUG = True
 
 def deform(annotation,ids):
     """ Count number of objects from segmentation mask"""
@@ -32,8 +32,10 @@ def deform_instance(img):
     scale = (np.random.rand()-0.5)/5;
     # print('scale = %f', scale)
     H_s = np.float32([[1+scale, 0, -scale*center[0]], [0, 1+scale, -scale*center[1]]]);
+    if DEBUG:
+        pdb.set_trace()
     img = cv2.warpAffine(img,H_s,(cols,rows))
-    cv2.imwrite('after_scale.jpg', img*80)
+    #cv2.imwrite('after_scale.jpg', img*80)
     
 
     #img = cv2.resize(img,None,fx=scale, fy=scale, interpolation = cv2.INTER_CUBIC)
@@ -45,7 +47,7 @@ def deform_instance(img):
     rows,cols = img.shape
     M = np.float32([[1,0,x_scale*cols],[0,1,y_scale*rows]])
     img = cv2.warpAffine(img,M,(cols,rows))
-    cv2.imwrite('after_trans.jpg', img*80)
+    #cv2.imwrite('after_trans.jpg', img*80)
 
     #thin plate
     height = rows
@@ -59,7 +61,7 @@ def deform_instance(img):
     pd = np.array([[0.1*width*(np.random.rand()-0.5), 0.1*height*(np.random.rand()-0.5)]]) + ps
     output_region = (0,0,height-1,width-1) #(xmin, ymin, xmax, ymax) 
     img = warp_images(ps, pd, [img], output_region, interpolation_order = 1, approximate_grid=2)[0]
-    cv2.imwrite('after_thin.jpg', img*80)
+    #cv2.imwrite('after_thin.jpg', img*80)
 
     #dilate
     kernel = np.ones((int(0.01*cols),int(0.01*rows)),np.uint8)

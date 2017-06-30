@@ -212,6 +212,7 @@ def demo2(sess, net, image_name, deformed_mask, ids, force_cpu):
         if np.max(filtered_mask[:,:,i]) == 0:
             tmp = np.copy(deformed_mask[:,:,i])
             filtered_mask[:,:,i] = tmp
+            filtered_mask_tmp[:,:,i] = np.copy(tmp)
         filter_mask_tmp[:,:,i] = filter_mask_tmp[:,:,i] *ids[i]
 
     filtered_mask_merge = np.amax(filtered_mask_tmp, axis=2)
@@ -221,7 +222,7 @@ def demo2(sess, net, image_name, deformed_mask, ids, force_cpu):
     #for i in range(3):
     #    output_mask[:,:,i] = filtered_mask/max_value*255
     #output_mask.astype(np.uint8)
-    return filtered_mask_merge, filter_mask
+    return filtered_mask_merge, filtered_mask
 
 
 def demo(sess, net, image_name, force_cpu):
@@ -368,7 +369,7 @@ if __name__ == '__main__':
                     im_mask_merge, mask_pick = demo2(sess, net, imgpath, deform_ann, ids, force_cpu)
                     maskout = os.path.join(maskpath,filename)
                     #boxname = im_name + '.png'
-                    boxout = os.path.join(boxpath, boxname)
+                    #boxout = os.path.join(boxpath, boxname)
                     cv2.imwrite(maskout, im_mask_merge)
                     # plt.savefig(boxout)
                     #pdb.set_trace()

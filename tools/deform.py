@@ -10,28 +10,19 @@ from PIL import Image
 # [mask_tps m_mask]=rbfwarp2d(mask_t,ps,pd,'thin');
 
 
-def deform(annotation):
+def deform(annotation,ids):
     """ Count number of objects from segmentation mask"""
-    ids = sorted(np.unique(annotation))
 
-    # Remove unknown-label
-    ids = ids[:-1] if ids[-1] == 255 else ids
 
-    # Handle no-background case
-    ids = ids if ids[0] else ids[1:]
-
-    img_deforms = []
-
-    for i in ids:
-        anno_single = np.copy(annotation)
-        #pdb.set_trace()
-        anno_single[np.where(annotation != i)] = 0
-        anno_single[np.where(annotation == i)] = 1
+    img_deforms = np.zeros(annotation.shape).astype(int) 
+    n = annotation.shape[2]
+    for i in range(n):
+        anno_single = np.copy(annotation[:,:,i])
         img_deform = deform_instance(anno_single)
-        pdb.set_trace()
-        img_deforms.append(img_deform)
+        # pdb.set_trace()
+        img_deforms[:,:,i] = img_deform
 
-    return img_deforms,ids
+    return img_deforms
 
 
 def deform_instance(img):
@@ -74,7 +65,7 @@ def deform_instance(img):
     kernel = np.ones((int(0.01*cols),int(0.01*rows)),np.uint8)
     img = cv2.dilate(img,kernel,iterations = 1)
     img = cv2.resize(img, (cols, rows)) 
-    img = np.around(img).astype(img.dtype)
+    img.astype(int)
     return img
 
 # filename = 'Annotations/Full-resolution/golf/00000.png'

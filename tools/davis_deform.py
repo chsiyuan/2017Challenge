@@ -138,7 +138,9 @@ def filter_mask(bbox, mask, deformed_masks, masks_filtered):
     for i in range(deformed_masks.shape[2]):
         deformed_masks.astype(int)
         gt_mask_ins = deformed_masks[:,:,i]
-        overlap = float(np.sum(mask_full_size & gt_mask_ins))/float(np.sum(mask_full_size ^ gt_mask_ins))
+        overlap = float(np.sum(np.minimum(mask_full_size, gt_mask_ins)))/float(np.sum(np.maximum(mask_full_size , gt_mask_ins)))
+        if DEBUG:
+            pdb.set_trace()
         print('intersection:' + str(np.sum(mask_full_size&gt_mask_ins)))
         print('union:' + str(np.sum(mask_full_size^gt_mask_ins)))
         if overlap >= cfg.TEST.FILTER:
@@ -148,7 +150,7 @@ def filter_mask(bbox, mask, deformed_masks, masks_filtered):
     # If the mask matches one of the instances, keep it.
     if is_overlap == 1:
         if np.max(masks_filtered[:,:,i]) != 0:
-            overlap0 = float(np.sum(masks_filtered[:,:,i] & gt_mask_ins))/float(np.sum(masks_filtered[:,:,i] ^ gt_mask_ins))
+            overlap0 = float(np.sum(np.minimum(masks_filtered[:,:,i], gt_mask_ins)))/float(np.sum(np.maximum(masks_filtered[:,:,i],gt_mask_ins)))
             if overlap0 < overlap:
                 masks_filtered[:,:,i] = mask_full_size
         else:
@@ -208,6 +210,7 @@ def demo2(sess, net, image_name, deformed_mask, ids, force_cpu):
 
     # Process masks
     filtered_mask = generate_mask(scores, boxes, masks, deformed_mask, force_cpu)
+    filtered_mask_tmp =np.zeros(filtered_mask.shape)
     filtered_mask_tmp = np.copy(filtered_mask)
     pdb.set_trace()
     for i in range(filtered_mask.shape[2]):
@@ -328,9 +331,9 @@ if __name__ == '__main__':
     #     pdb.set_trace()
 
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    rootdir = 'data/DAVIS_test-dev-480/JPEGImages/480p/'
-    anndir = 'data/DAVIS_test-dev-480/Annotations/480p/'
-    maskdir = 'data/DAVIS_test-dev-480/out_mask/'
+    rootdir = 'data/DAVIS_test-challenge-480/JPEGImages/480p/'
+    anndir = 'data/DAVIS_test-challenge-480/Annotations/480p/'
+    maskdir = 'data/DAVIS_test-challenge-480/out_mask/'
     #boxdir = 'data/DAVIS/out_box'
 
     if not os.path.isdir(maskdir):
@@ -341,10 +344,12 @@ if __name__ == '__main__':
     list = os.listdir(rootdir)
 
     if DEBUG:
-        list = ['tennis-vest']
+        list = ['bike-trial']
 
     for line in list:
         filepath = os.path.join(rootdir,line)
+
+
         if os.path.isdir(filepath):
             maskpath = os.path.join(maskdir,line)
             #boxpath = os.path.join(boxdir,line)
@@ -376,7 +381,18 @@ if __name__ == '__main__':
             
             # if not os.path.isdir(boxpath):
             #     os.mkdir(boxpath)
+
             framelist = os.listdir(filepath)
+            # if DEBUG:
+            #     pdb.set_trace()
+            if all(os.path.splitext(path)[0].isdigit() for path in framelist):
+                framelist = sorted(framelist, key=lambda path: int(os.path.splitext(path)[0]))
+            else:
+                framelist = sorted(framelist)
+
+            # if DEBUG:
+            #     pdb.set_trace()
+
             for filename in framelist:
                 if os.path.splitext(filename)[1] == '.jpg' and os.path.splitext(filename)[0] != '00000':
                     im_name = os.path.splitext(filename)[0]
@@ -384,8 +400,8 @@ if __name__ == '__main__':
                     print 'Demo for ' + imgpath
                     # deform_ann is a list 
                     deform_ann = deform(mask_pick, ids)
-                    if DEBUG:
-                        pbs.set_trace()
+                    # if DEBUG:
+                    #     pdb.set_trace()
                     im_mask_merge, mask_pick = demo2(sess, net, imgpath, deform_ann, ids, force_cpu)
                     maskout = os.path.join(maskpath,filename)
                     #boxname = im_name + '.png'

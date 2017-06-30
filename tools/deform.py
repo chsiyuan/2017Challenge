@@ -8,7 +8,7 @@ from PIL import Image
 # pd = ps;
 # pd = [0.2*width*(rand(5,1)-0.5),0.2*height*(rand(5,1)-0.5)]+ps;
 # [mask_tps m_mask]=rbfwarp2d(mask_t,ps,pd,'thin');
-DEBUG = True
+DEBUG = False
 
 def deform(annotation,ids):
     """ Count number of objects from segmentation mask"""
@@ -34,7 +34,7 @@ def deform_instance(img):
     H_s = np.float32([[1+scale, 0, -scale*center[0]], [0, 1+scale, -scale*center[1]]]);
     if DEBUG:
         pdb.set_trace()
-    img = cv2.warpAffine(img,H_s,(cols,rows))
+    img = cv2.warpAffine(img.astype(np.float32),H_s,(cols,rows))
     #cv2.imwrite('after_scale.jpg', img*80)
     
 
